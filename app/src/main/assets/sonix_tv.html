@@ -2057,29 +2057,44 @@
       return url.toString();
     }
 
+    let iptvRequestCounter = 0;
+    const pendingIptvRequests = new Map();
+
+    window.__onIptvResponse = function(requestId, serializedResult) {
+      const pending = pendingIptvRequests.get(String(requestId));
+      if (!pending) return;
+      pendingIptvRequests.delete(String(requestId));
+      try {
+        const result = JSON.parse(serializedResult);
+        if (!result || !result.ok) {
+          const status = result && result.status ? ' (' + result.status + ')' : '';
+          pending.reject(new Error('فشل الاتصال بخادم الاشتراك' + status));
+          return;
+        }
+        pending.resolve(JSON.parse(result.body));
+      } catch (_) {
+        pending.reject(new Error('تعذر قراءة استجابة خادم IPTV'));
+      }
+    };
+
     function nativeHttpGet(url) {
-      if (!window.AndroidBridge || typeof window.AndroidBridge.fetchIptv !== 'function') {
-        throw new Error('نسخة التطبيق لا تدعم الاتصال بمزود IPTV؛ حدّث التطبيق');
-      }
-      let result;
-      try {
-        result = JSON.parse(window.AndroidBridge.fetchIptv(url));
-      } catch (_) {
-        throw new Error('تعذر قراءة استجابة الخادم');
-      }
-      if (!result || !result.ok) {
-        const status = result && result.status ? ' (' + result.status + ')' : '';
-        throw new Error('فشل الاتصال بخادم الاشتراك' + status);
-      }
-      try {
-        return JSON.parse(result.body);
-      } catch (_) {
-        throw new Error('استجابة خادم IPTV ليست JSON صالحاً');
-      }
+      return new Promise((resolve, reject) => {
+        if (!window.AndroidBridge || typeof window.AndroidBridge.fetchIptv !== 'function') {
+          reject(new Error('نسخة التطبيق لا تدعم الاتصال بمزود IPTV؛ حدّث التطبيق'));
+          return;
+        }
+        const requestId = String(++iptvRequestCounter);
+        pendingIptvRequests.set(requestId, { resolve, reject });
+        try {
+          window.AndroidBridge.fetchIptv(url, requestId);
+        } catch (_) {
+          pendingIptvRequests.delete(requestId);
+          reject(new Error('تعذر بدء الاتصال بخادم IPTV'));
+        }
+      });
     }
 
     async function xtreamRequest(action, extra = {}) {
-      // Native bridge calls are synchronous; Promise wrapper keeps callers async.
       return nativeHttpGet(xtreamApiUrl(action, extra));
     }
 
