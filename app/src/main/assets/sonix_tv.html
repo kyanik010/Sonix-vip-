@@ -2756,6 +2756,8 @@
           return;
         }
 
+        if (!this.isActive) this.originalVideoMuted = this.videoController.videoEl.muted;
+
         // An independent commentary/audio URL is required. Never treat the video
         // stream itself as a separate audio source.
         const audioUrl = typeof this.selectedSourceChannel.audioOnlyUrl === 'string'
@@ -2768,7 +2770,6 @@
           return;
         }
 
-        if (!this.isActive) this.originalVideoMuted = this.videoController.videoEl.muted;
         this.isActive = false;
         this.activeBadgeEl.classList.remove('visible');
         this.btnExtAudio.classList.remove('is-active');
