@@ -1932,6 +1932,7 @@
               <button id="btn-save-iptv" class="action-btn focusable" style="background:var(--focus-blue); color:#0A0F14; border:none; font-weight:800; align-self:flex-start;">
                 حفظ واختبار الاتصال
               </button>
+              <div id="iptv-connection-status" style="font-size:0.78rem;color:var(--text-silver);min-height:20px;" aria-live="polite"></div>
             </div>
           </div>
         </div>
@@ -2012,346 +2013,257 @@
     // Mode State: 'live' | 'movies' | 'series'
     let currentAppMode = 'live';
 
-    // 1. LIVE CHANNELS
-    const MOCK_CATEGORIES = [
-      { id: 'cat-sports', name: 'AR | الرياضة SPORTS', count: 18 },
-      { id: 'cat-bein-4k', name: 'beIN SPORTS 4K 3840p', count: 4 },
-      { id: 'cat-bein-hd', name: 'beIN SPORTS HD', count: 12 },
-      { id: 'cat-ssc', name: 'SSC SPORTS HD', count: 8 },
-      { id: 'cat-news', name: 'AR | الاخبار NEWS', count: 14 },
-      { id: 'cat-docs', name: 'AR | الوثائقيات DOCS', count: 10 },
-      { id: 'cat-ent', name: 'AR | ترفيه ومنوعات ENTERTAINMENT', count: 16 },
-      { id: 'cat-4k', name: '4K & 8K ULTRA HD', count: 6 },
-      { id: 'cat-events', name: 'EVENT ONLY (أحداث حصرية)', count: 5 },
-      { id: 'cat-fav', name: 'المفضلة (FAVORITES)', count: 0 }
-    ];
+    // Live data is populated from the connected IPTV provider.
+    const MOCK_CATEGORIES = [];
+    const MOCK_CHANNELS = [];
+    const MOCK_MOVIE_CATEGORIES = [];
+    const MOCK_MOVIES = [];
+    const MOCK_SERIES_CATEGORIES = [];
+    const MOCK_SERIES = [];
 
-    const MOCK_CHANNELS = [
-      {
-        id: 'ch-1',
-        number: 1,
-        name: 'beIN SPORTS 1 HD',
-        category: 'cat-sports',
-        categoryName: 'AR | الرياضة SPORTS',
-        logoText: 'B1',
-        streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-        audioOnlyUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-        epgTitle: 'الاستوديو التحليلي - دوري أبطال أوروبا',
-        epgDesc: 'تغطية تحليلية لمباريات الليلة مع نخبة من المحللين الرياضيين.',
-        epgNext: 'حصاد الأهداف وملخص الجولة'
-      },
-      {
-        id: 'ch-2',
-        number: 2,
-        name: 'beIN SPORTS 2 HD',
-        category: 'cat-sports',
-        categoryName: 'AR | الرياضة SPORTS',
-        logoText: 'B2',
-        streamUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
-        audioOnlyUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
-        epgTitle: 'الدوري الإنجليزي الممتاز - مباشر',
-        epgDesc: 'البث المباشر لأقوى مباريات الجولة من البريميرليغ.',
-        epgNext: 'عالم الدوري الإنجليزي'
-      },
-      {
-        id: 'ch-3',
-        number: 3,
-        name: 'beIN SPORTS 3 HD',
-        category: 'cat-sports',
-        categoryName: 'AR | الرياضة SPORTS',
-        logoText: 'B3',
-        streamUrl: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
-        audioOnlyUrl: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
-        epgTitle: 'الدوري الإسباني - لا ليغا',
-        epgDesc: 'مباراة مباشرة مع الاستوديو التحليلي من مدريد.',
-        epgNext: 'أهداف الجولة الإسبانية'
-      },
-      {
-        id: 'ch-4',
-        number: 4,
-        name: 'beIN SPORTS 4K 3840p',
-        category: 'cat-bein-4k',
-        categoryName: 'beIN SPORTS 4K 3840p',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        audioOnlyUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        epgTitle: 'البث الفائق 4K - قمة الأسبوع',
-        epgDesc: 'أعلى دقة تصوير 3840p مع تقنية HDR والصوت المحيطي.',
-        epgNext: 'ملخصات المباريات بتقنية 4K'
-      },
-      {
-        id: 'ch-5',
-        number: 5,
-        name: 'SSC 1 SPORTS HD',
-        category: 'cat-ssc',
-        categoryName: 'SSC SPORTS HD',
-        logoText: 'SSC',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        audioOnlyUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        epgTitle: 'دوري روشن السعودي للمحترفين',
-        epgDesc: 'مباراة الجولة بين فريقي الهلال والنصر.',
-        epgNext: 'برنامج برا 18'
-      },
-      {
-        id: 'ch-6',
-        number: 6,
-        name: 'AR | الجزيرة الاخبارية NEWS',
-        category: 'cat-news',
-        categoryName: 'AR | الاخبار NEWS',
-        logoText: 'JAZ',
-        streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-        audioOnlyUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-        epgTitle: 'نشرة الأخبار الرئيسية - منتصف اليوم',
-        epgDesc: 'متابعة شاملة لآخر التطورات السياسية في الشرق الأوسط والعالم.',
-        epgNext: 'ما وراء الخبر'
-      },
-      {
-        id: 'ch-7',
-        number: 7,
-        name: 'AR | العربية الحدث NEWS',
-        category: 'cat-news',
-        categoryName: 'AR | الاخبار NEWS',
-        logoText: 'ARB',
-        streamUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
-        audioOnlyUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
-        epgTitle: 'تغطية إخبارية مستمرة على مدار الساعة',
-        epgDesc: 'تقارير ميدانية ومقابلات مباشرة مع كبار المحللين.',
-        epgNext: 'الشارع الدبلوماسي'
-      },
-      {
-        id: 'ch-8',
-        number: 8,
-        name: 'AR | ناشيونال جيوغرافيك ابوظبي DOCS',
-        category: 'cat-docs',
-        categoryName: 'AR | الوثائقيات DOCS',
-        logoText: 'GEO',
-        streamUrl: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
-        audioOnlyUrl: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
-        epgTitle: 'أسرار الطبيعة - المفترسات الكبرى',
-        epgDesc: 'رحلة استكشافية في أعماق الغابات الاستوائية والحيوانات النادرة.',
-        epgNext: 'هندسة عبقرية'
-      },
-      {
-        id: 'ch-9',
-        number: 9,
-        name: 'MBC 1 HD ENTERTAINMENT',
-        category: 'cat-ent',
-        categoryName: 'AR | ترفيه ومنوعات ENTERTAINMENT',
-        logoText: 'MBC',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        audioOnlyUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        epgTitle: 'مساء الخير يا عرب',
-        epgDesc: 'برنامج المنوعات الترفيهي اليومي وفقرات النجوم.',
-        epgNext: 'صدى الملاعب'
-      },
-      {
-        id: 'ch-10',
-        number: 10,
-        name: 'EVENT ONLY | البث المباشر للأحداث',
-        category: 'cat-events',
-        categoryName: 'EVENT ONLY (أحداث حصرية)',
-        logoText: 'EVT',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        audioOnlyUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        epgTitle: 'مباراة الكلاسيكو - بث مخصص بدون تقطيع',
-        epgDesc: 'خادم مخصص لقمة مباريات الأسبوع مع قنوات صوتية متعددة.',
-        epgNext: 'المؤتمر الصحفي للمدربين'
+    const memoryFavorites = new Set();
+
+    // =========================================================================
+    // REAL XTREAM API DATA SOURCE
+    // Requests run through the Android bridge to avoid WebView CORS restrictions.
+    // =========================================================================
+    const iptvState = { server: '', username: '', password: '', connected: false };
+    let seriesEpisodeMode = false;
+    let currentSeriesParent = null;
+    let currentSeriesEpisodes = [];
+    let currentSeriesSeasonCategories = [];
+
+    function replaceArray(target, values) {
+      target.splice(0, target.length, ...values);
+    }
+
+    function normalizeServerUrl(value) {
+      let valueToUse = String(value || '').trim();
+      if (!valueToUse) throw new Error('أدخل رابط الخادم أولاً');
+      if (!/^https?:\/\//i.test(valueToUse)) valueToUse = 'http://' + valueToUse;
+      const parsed = new URL(valueToUse);
+      if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
+        throw new Error('رابط الخادم غير صالح');
       }
-    ];
+      return parsed.origin + parsed.pathname.replace(/\/+$/, '');
+    }
 
-    // 2. MOVIES VOD DATA
-    const MOCK_MOVIE_CATEGORIES = [
-      { id: 'mv-action', name: 'أفلام أكشن وحركة (ACTION 4K)', count: 5 },
-      { id: 'mv-scifi', name: 'أفلام خيال علمي (SCI-FI 4K)', count: 4 },
-      { id: 'mv-drama', name: 'أفلام دراما وتاريخ (DRAMA)', count: 4 },
-      { id: 'mv-arabic', name: 'أفلام عربية حديثة (ARABIC)', count: 3 },
-      { id: 'mv-animation', name: 'أفلام أنيميشن وعائلية (ANIMATION)', count: 3 }
-    ];
+    function xtreamApiUrl(action, extra = {}) {
+      const url = new URL(iptvState.server.replace(/\/+$/, '') + '/player_api.php');
+      url.searchParams.set('username', iptvState.username);
+      url.searchParams.set('password', iptvState.password);
+      if (action) url.searchParams.set('action', action);
+      Object.entries(extra).forEach(([key, value]) => url.searchParams.set(key, String(value)));
+      return url.toString();
+    }
 
-    const MOCK_MOVIES = [
-      {
-        id: 'mv-1',
-        number: 1,
-        name: 'Dune: Part Two (2024)',
-        category: 'mv-scifi',
-        categoryName: 'أفلام خيال علمي (SCI-FI 4K)',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        quality: '4K HDR',
-        rating: '8.6',
-        specs: '4K HDR • 166 دقيقة • 2024',
-        desc: 'يواصل بول أتريدس رحلته الأسطورية متحالفا مع تشاني وفريمن للانتقام من المتآمرين الذين دمروا عائلته.'
-      },
-      {
-        id: 'mv-2',
-        number: 2,
-        name: 'Gladiator II (2024)',
-        category: 'mv-action',
-        categoryName: 'أفلام أكشن وحركة (ACTION 4K)',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        quality: '4K Dolby',
-        rating: '8.1',
-        specs: '4K Dolby • 148 دقيقة • 2024',
-        desc: 'بعد سنوات من التضحية بماكسيموس، يدخل لوسيوس الكولوسيوم الروماني ليعيد شرف الإمبراطورية.'
-      },
-      {
-        id: 'mv-3',
-        number: 3,
-        name: 'Oppenheimer (2023)',
-        category: 'mv-drama',
-        categoryName: 'أفلام دراما وتاريخ (DRAMA)',
-        logoText: 'FHD',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        quality: '4K IMAX',
-        rating: '8.9',
-        specs: '4K IMAX • 180 دقيقة • 2023',
-        desc: 'قصة العالم الأمريكي ج. روبرت أوبنهايمر ودوره المحوري في تطوير القنبلة الذرية خلال مشروع مانهاتن.'
-      },
-      {
-        id: 'mv-4',
-        number: 4,
-        name: 'Mission: Impossible 7 (2023)',
-        category: 'mv-action',
-        categoryName: 'أفلام أكشن وحركة (ACTION 4K)',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-        quality: '4K HDR',
-        rating: '7.8',
-        specs: '4K HDR • 163 دقيقة • 2023',
-        desc: 'إيثان هانت وفريقه في مهمة مستحيلة لتعقب سلاح مرعب يهدد البشرية قبل أن يقع في الأيدي الخاطئة.'
-      },
-      {
-        id: 'mv-5',
-        number: 5,
-        name: 'Top Gun: Maverick (2022)',
-        category: 'mv-action',
-        categoryName: 'أفلام أكشن وحركة (ACTION 4K)',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-        quality: '4K HDR',
-        rating: '8.3',
-        specs: '4K HDR • 130 دقيقة • 2022',
-        desc: 'يعود مافريك لتدريب نخبة من طياري توب جن لمهمة متخصصة لم يسبق لأي طيار حي رؤيتها.'
-      },
-      {
-        id: 'mv-6',
-        number: 6,
-        name: 'كيرة والجن (2022)',
-        category: 'mv-arabic',
-        categoryName: 'أفلام عربية حديثة (ARABIC)',
-        logoText: 'FHD',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
-        quality: '4K HDR',
-        rating: '8.4',
-        specs: '4K HDR • 175 دقيقة • 2022',
-        desc: 'ملحمة تاريخية ترصد حالة الغليان الشعبي وثورة 1919 في مصر ومقاومة الاحتلال الإنجليزي.'
-      },
-      {
-        id: 'mv-7',
-        number: 7,
-        name: 'ولاد رزق 3: القاضية (2024)',
-        category: 'mv-arabic',
-        categoryName: 'أفلام عربية حديثة (ARABIC)',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-        quality: '4K HDR',
-        rating: '7.9',
-        specs: '4K HDR • 135 دقيقة • 2024',
-        desc: 'يعود الإخوة بعد سنوات في مواجهة عملية مصيرية تأخذهم إلى الرياض وسط مخاطر غير مسبوقة.'
-      },
-      {
-        id: 'mv-8',
-        number: 8,
-        name: 'Spider-Man: Across Spider-Verse',
-        category: 'mv-animation',
-        categoryName: 'أفلام أنيميشن وعائلية (ANIMATION)',
-        logoText: '4K',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-        quality: '4K HDR',
-        rating: '8.7',
-        specs: '4K HDR • 140 دقيقة • 2023',
-        desc: 'ينطلق مايلز موراليس عبر الأكوان المتعددة لمواجهة شرير خارق لحماية وجود الكون.'
+    function nativeHttpGet(url) {
+      if (!window.AndroidBridge || typeof window.AndroidBridge.fetchIptv !== 'function') {
+        throw new Error('نسخة التطبيق لا تدعم الاتصال بمزود IPTV؛ حدّث التطبيق');
       }
-    ];
-
-    // 3. SERIES DATA
-    const MOCK_SERIES_CATEGORIES = [
-      { id: 'sr-top', name: 'أقوى المسلسلات العالمية (TOP RATED)', count: 5 },
-      { id: 'sr-arabic', name: 'مسلسلات عربية ومصرية (ARABIC)', count: 3 },
-      { id: 'sr-turkish', name: 'مسلسلات تركية مدبلجة (TURKISH)', count: 3 },
-      { id: 'sr-fantasy', name: 'فانتازيا وخيال علمي (FANTASY)', count: 3 }
-    ];
-
-    const MOCK_SERIES = [
-      {
-        id: 'sr-1',
-        number: 1,
-        name: 'House of the Dragon (آل التنين)',
-        category: 'sr-top',
-        categoryName: 'أقوى المسلسلات العالمية (TOP RATED)',
-        logoText: 'S2',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        quality: '4K HDR',
-        rating: '8.5',
-        specs: 'الموسم 2 (8 حلقات) • 4K HDR',
-        desc: 'الحرب الأهلية التارجيرية تشتعل بين الفصائل المتناحرة على العرش الحديدي في ويستروس.'
-      },
-      {
-        id: 'sr-2',
-        number: 2,
-        name: 'The Last of Us (آخرنا)',
-        category: 'sr-top',
-        categoryName: 'أقوى المسلسلات العالمية (TOP RATED)',
-        logoText: 'S1',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        quality: '4K HDR',
-        rating: '8.8',
-        specs: 'الموسم 1 (9 حلقات) • 4K HDR',
-        desc: 'رحلة جويل وإيلي القاسية عبر الولايات المتحدة المدمرة بعد تفشي وباء فطري حول العالم.'
-      },
-      {
-        id: 'sr-3',
-        number: 3,
-        name: 'Breaking Bad (اختلال ضال)',
-        category: 'sr-top',
-        categoryName: 'أقوى المسلسلات العالمية (TOP RATED)',
-        logoText: 'S5',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        quality: '4K UHD',
-        rating: '9.5',
-        specs: 'المواسم 1-5 (62 حلقة) • 4K',
-        desc: 'تحول معلم كيمياء محبط مصاب بالسرطان إلى زعيم إمبراطورية تجارة الممنوعات هايزنبرغ.'
-      },
-      {
-        id: 'sr-4',
-        number: 4,
-        name: 'الحشاشين (2024)',
-        category: 'sr-arabic',
-        categoryName: 'مسلسلات عربية ومصرية (ARABIC)',
-        logoText: 'S1',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-        quality: '4K HDR',
-        rating: '9.1',
-        specs: 'الموسم 1 (30 حلقة) • 4K HDR',
-        desc: 'ملحمة تاريخية عن حسن الصباح وقلعة ألموت وتأسيس أخطر فرقة اغتيالات في التاريخ.'
-      },
-      {
-        id: 'sr-5',
-        number: 5,
-        name: 'قيامة عثمان (Kuruluş Osman)',
-        category: 'sr-turkish',
-        categoryName: 'مسلسلات تركية مدبلجة (TURKISH)',
-        logoText: 'S5',
-        streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-        quality: 'FHD 1080p',
-        rating: '8.2',
-        specs: 'الموسم 5 (164 حلقة) • FHD',
-        desc: 'مسيرة الغازي عثمان بن أرطغرل وتأسيس الدولة العثمانية والصراعات ضد المغول والصليبيين.'
+      let result;
+      try {
+        result = JSON.parse(window.AndroidBridge.fetchIptv(url));
+      } catch (_) {
+        throw new Error('تعذر قراءة استجابة الخادم');
       }
-    ];
+      if (!result || !result.ok) {
+        const status = result && result.status ? ' (' + result.status + ')' : '';
+        throw new Error('فشل الاتصال بخادم الاشتراك' + status);
+      }
+      try {
+        return JSON.parse(result.body);
+      } catch (_) {
+        throw new Error('استجابة خادم IPTV ليست JSON صالحاً');
+      }
+    }
 
-    const memoryFavorites = new Set(['ch-1', 'ch-4', 'mv-1', 'sr-1']);
+    async function xtreamRequest(action, extra = {}) {
+      // Native bridge calls are synchronous; Promise wrapper keeps callers async.
+      return nativeHttpGet(xtreamApiUrl(action, extra));
+    }
+
+    function makeStreamUrl(type, streamId, extension) {
+      const ext = extension || (type === 'live' ? 'm3u8' : 'mp4');
+      const path = type === 'live' ? 'live' : (type === 'movie' ? 'movie' : 'series');
+      return iptvState.server.replace(/\/+$/, '') + '/' + path + '/' +
+        encodeURIComponent(iptvState.username) + '/' +
+        encodeURIComponent(iptvState.password) + '/' +
+        encodeURIComponent(streamId) + '.' + String(ext).replace(/^\./, '');
+    }
+
+    function mapXtreamCategories(rows, prefix, includeFavorites = false) {
+      const mapped = (Array.isArray(rows) ? rows : []).map(row => ({
+        id: prefix + String(row.category_id),
+        sourceId: String(row.category_id),
+        name: String(row.category_name || 'بدون اسم'),
+        count: 0
+      }));
+      if (includeFavorites) mapped.push({ id: 'cat-fav', name: 'المفضلة', count: 0 });
+      return mapped;
+    }
+
+    function mapXtreamItems(rows, prefix, type) {
+      return (Array.isArray(rows) ? rows : []).map((row, index) => {
+        const categoryId = row.category_id == null ? '' : String(row.category_id);
+        const category = prefix + categoryId;
+        const categoryName = type === 'live'
+          ? (MOCK_CATEGORIES.find(c => c.id === category)?.name || 'قنوات')
+          : (type === 'movie'
+            ? (MOCK_MOVIE_CATEGORIES.find(c => c.id === category)?.name || 'أفلام')
+            : (MOCK_SERIES_CATEGORIES.find(c => c.id === category)?.name || 'مسلسلات'));
+        const id = String(type === 'live' ? row.stream_id : (type === 'movie' ? row.stream_id : row.series_id));
+        return {
+          id: type + '-' + id,
+          sourceId: id,
+          number: Number(row.num || index + 1),
+          name: String(row.name || 'بدون اسم'),
+          category,
+          categoryName,
+          logoText: String(row.name || 'TV').trim().slice(0, 4).toUpperCase(),
+          logo: row.stream_icon || row.cover || '',
+          streamUrl: type === 'series' ? '' : makeStreamUrl(type, id, type === 'live' ? 'm3u8' : row.container_extension),
+          audioOnlyUrl: '',
+          rating: row.rating || '',
+          specs: row.container_extension ? String(row.container_extension).toUpperCase() : '',
+          desc: row.plot || '',
+          isSeries: type === 'series'
+        };
+      });
+    }
+
+    function refreshCurrentContent() {
+      const categories = getActiveCategoryList();
+      const items = getActiveItemList();
+      if (!categories.some(c => c.id === currentActiveCategory)) currentActiveCategory = categories[0]?.id || '';
+      currentSelectedItem = items.find(item => item.category === currentActiveCategory) || items[0] || null;
+      renderCategories();
+      renderItems();
+      renderAudioSourcePicker();
+      if (currentSelectedItem && currentSelectedItem.streamUrl) videoPlaybackController.loadItem(currentSelectedItem);
+      else if (videoPlaybackController) {
+        videoPlaybackController.stopAndRelease();
+        videoPlaybackController.showError('اختر قناة أو محتوى من اشتراكك لبدء التشغيل');
+      }
+    }
+
+    async function connectAndLoadIptv(showStatus = true) {
+      const button = document.getElementById('btn-save-iptv');
+      const status = document.getElementById('iptv-connection-status');
+      const server = normalizeServerUrl(document.getElementById('iptv-server-url').value);
+      const username = document.getElementById('iptv-username').value.trim();
+      const password = document.getElementById('iptv-password').value;
+      if (!username || !password) throw new Error('أدخل اسم المستخدم وكلمة المرور');
+      if (button) { button.disabled = true; button.textContent = 'جارٍ اختبار الاتصال وتحميل البيانات...'; }
+      if (status) status.textContent = 'جارٍ الاتصال بالخادم...';
+
+      iptvState.server = server;
+      iptvState.username = username;
+      iptvState.password = password;
+      try {
+        const auth = await xtreamRequest('');
+        const userInfo = auth && auth.user_info;
+        if (!userInfo || Number(userInfo.auth) !== 1 || String(userInfo.status || '').toLowerCase() === 'disabled') {
+          throw new Error('بيانات الاشتراك غير صحيحة أو الاشتراك غير نشط');
+        }
+
+        const actions = [
+          ['get_live_categories', 'liveCategories'],
+          ['get_live_streams', 'liveStreams'],
+          ['get_vod_categories', 'movieCategories'],
+          ['get_vod_streams', 'movieStreams'],
+          ['get_series_categories', 'seriesCategories'],
+          ['get_series', 'seriesStreams']
+        ];
+        const loaded = {};
+        for (const [action, key] of actions) {
+          try { loaded[key] = await xtreamRequest(action); }
+          catch (error) {
+            loaded[key] = [];
+            console.warn('IPTV section unavailable:', action);
+          }
+        }
+
+        replaceArray(MOCK_CATEGORIES, mapXtreamCategories(loaded.liveCategories, 'live-', true));
+        replaceArray(MOCK_MOVIE_CATEGORIES, mapXtreamCategories(loaded.movieCategories, 'movie-'));
+        replaceArray(MOCK_SERIES_CATEGORIES, mapXtreamCategories(loaded.seriesCategories, 'series-'));
+        replaceArray(MOCK_CHANNELS, mapXtreamItems(loaded.liveStreams, 'live-', 'live'));
+        replaceArray(MOCK_MOVIES, mapXtreamItems(loaded.movieStreams, 'movie-', 'movie'));
+        replaceArray(MOCK_SERIES, mapXtreamItems(loaded.seriesStreams, 'series-', 'series'));
+
+        iptvState.connected = true;
+        if (window.AndroidBridge && typeof window.AndroidBridge.saveIptvConfig === 'function') {
+          window.AndroidBridge.saveIptvConfig(server, username, password);
+        }
+        seriesEpisodeMode = false;
+        currentSeriesParent = null;
+        currentSeriesEpisodes = [];
+        currentSeriesSeasonCategories = [];
+        currentAppMode = 'live';
+        currentActiveCategory = MOCK_CATEGORIES.find(c => c.id !== 'cat-fav')?.id || 'cat-fav';
+        refreshCurrentContent();
+
+        const counts = 'القنوات: ' + MOCK_CHANNELS.length + ' | الأفلام: ' + MOCK_MOVIES.length + ' | المسلسلات: ' + MOCK_SERIES.length;
+        if (status) status.textContent = 'متصل بنجاح — ' + counts;
+        if (showStatus) showToast('تم الاتصال وتحميل بيانات الاشتراك الحقيقية');
+        return true;
+      } catch (error) {
+        iptvState.connected = false;
+        if (status) status.textContent = error.message || 'فشل الاتصال';
+        throw error;
+      } finally {
+        if (button) { button.disabled = false; button.textContent = 'حفظ واختبار الاتصال'; }
+      }
+    }
+
+    async function loadSeriesEpisodes(series) {
+      if (!series || !series.sourceId) return;
+      showToast('جارٍ تحميل مواسم وحلقات ' + series.name);
+      try {
+        const info = await xtreamRequest('get_series_info', { series_id: series.sourceId });
+        const seasons = info && info.episodes ? info.episodes : {};
+        const seasonKeys = Object.keys(seasons).sort((a, b) => Number(a) - Number(b));
+        const episodeItems = [];
+        const seasonCategories = [];
+        seasonKeys.forEach((season, seasonIndex) => {
+          const entries = Array.isArray(seasons[season]) ? seasons[season] : [];
+          const categoryId = 'season-' + season;
+          seasonCategories.push({ id: categoryId, name: 'الموسم ' + season, count: entries.length });
+          entries.forEach((episode, episodeIndex) => {
+            const episodeId = String(episode.id || episode.stream_id || '');
+            if (!episodeId) return;
+            episodeItems.push({
+              id: 'episode-' + episodeId,
+              sourceId: episodeId,
+              number: Number(episode.episode_num || episodeIndex + 1),
+              name: 'S' + season + ' E' + (episode.episode_num || episodeIndex + 1) + ' — ' + String(episode.title || series.name),
+              category: categoryId,
+              categoryName: 'الموسم ' + season,
+              logoText: 'E' + (episode.episode_num || episodeIndex + 1),
+              logo: episode.info?.movie_image || series.logo || '',
+              streamUrl: makeStreamUrl('series', episodeId, episode.container_extension),
+              rating: episode.info?.rating || series.rating || '',
+              specs: 'الموسم ' + season + ' • الحلقة ' + (episode.episode_num || episodeIndex + 1),
+              desc: episode.info?.plot || series.desc || '',
+              isEpisode: true
+            });
+          });
+        });
+        if (!episodeItems.length) throw new Error('لا توجد حلقات متاحة لهذا المسلسل في الخادم');
+        currentSeriesParent = series;
+        currentSeriesEpisodes = episodeItems;
+        currentSeriesSeasonCategories = seasonCategories;
+        seriesEpisodeMode = true;
+        currentActiveCategory = seasonCategories[0]?.id || '';
+        document.getElementById('channels-badge-name').textContent = series.name;
+        currentSelectedItem = null;
+        renderCategories();
+        renderItems();
+        showToast('تم تحميل ' + episodeItems.length + ' حلقة');
+      } catch (error) {
+        showToast(error.message || 'تعذر تحميل حلقات المسلسل');
+      }
+    }
 
     /**
      * =========================================================================
@@ -2430,7 +2342,11 @@
         }
 
         const streamUrl = item.streamUrl;
-        const isM3u8 = streamUrl && streamUrl.includes('.m3u8');
+        if (!streamUrl) {
+          this.showError('لا يوجد رابط تشغيل لهذا العنصر.');
+          return;
+        }
+        const isM3u8 = streamUrl.toLowerCase().includes('.m3u8');
 
         if (isM3u8 && window.Hls && Hls.isSupported()) {
           this.hlsInstance = new Hls({
@@ -2484,12 +2400,7 @@
 
       handleError(e) {
         console.error('Video error', e);
-        if (this.currentItem && !this.currentItem.streamUrl.endsWith('.mp4')) {
-          this.videoEl.src = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-          this.videoEl.play().catch(() => {});
-        } else {
-          this.showError('حدث خطأ في تشغيل الفيديو.');
-        }
+        this.showError('تعذر تشغيل هذا البث من مزود الخدمة. تحقق من صلاحية الرابط والاشتراك.');
       }
 
       showLoader(msg) {
@@ -3133,40 +3044,43 @@
       const searchInput = document.getElementById('live-channel-search');
       const catSearchInput = document.getElementById('cat-filter-input');
 
+      seriesEpisodeMode = false;
+      currentSeriesParent = null;
+      currentSeriesEpisodes = [];
+      currentSeriesSeasonCategories = [];
       if (mode === 'live') {
         titleEl.textContent = 'مباشر';
         searchInput.placeholder = 'البحث في القنوات...';
         catSearchInput.placeholder = 'البحث في فئات القنوات...';
-        currentActiveCategory = 'cat-sports';
-        currentSelectedItem = MOCK_CHANNELS[0];
+        currentActiveCategory = MOCK_CATEGORIES.find(c => c.id !== 'cat-fav')?.id || 'cat-fav';
       } else if (mode === 'movies') {
         titleEl.textContent = 'الأفلام (VOD)';
         searchInput.placeholder = 'البحث في الأفلام...';
         catSearchInput.placeholder = 'البحث في تصنيفات الأفلام...';
-        currentActiveCategory = 'mv-action';
-        currentSelectedItem = MOCK_MOVIES[0];
+        currentActiveCategory = MOCK_MOVIE_CATEGORIES[0]?.id || '';
       } else if (mode === 'series') {
         titleEl.textContent = 'المسلسلات (Series)';
         searchInput.placeholder = 'البحث في المسلسلات...';
         catSearchInput.placeholder = 'البحث في تصنيفات المسلسلات...';
-        currentActiveCategory = 'sr-top';
-        currentSelectedItem = MOCK_SERIES[0];
+        currentActiveCategory = MOCK_SERIES_CATEGORIES[0]?.id || '';
       }
 
+      currentSelectedItem = getActiveItemList().find(item => item.category === currentActiveCategory) || getActiveItemList()[0] || null;
       renderCategories();
       renderItems();
-      videoPlaybackController.loadItem(currentSelectedItem);
+      if (currentSelectedItem && currentSelectedItem.streamUrl) videoPlaybackController.loadItem(currentSelectedItem);
+      else videoPlaybackController.showError('لا توجد بيانات. أضف اشتراك IPTV من الإعدادات.');
     }
 
     function getActiveCategoryList() {
       if (currentAppMode === 'movies') return MOCK_MOVIE_CATEGORIES;
-      if (currentAppMode === 'series') return MOCK_SERIES_CATEGORIES;
+      if (currentAppMode === 'series') return seriesEpisodeMode ? currentSeriesSeasonCategories : MOCK_SERIES_CATEGORIES;
       return MOCK_CATEGORIES;
     }
 
     function getActiveItemList() {
       if (currentAppMode === 'movies') return MOCK_MOVIES;
-      if (currentAppMode === 'series') return MOCK_SERIES;
+      if (currentAppMode === 'series') return seriesEpisodeMode ? currentSeriesEpisodes : MOCK_SERIES;
       return MOCK_CHANNELS;
     }
 
@@ -3292,6 +3206,10 @@
     }
 
     function selectItem(item) {
+      if (currentAppMode === 'series' && item && item.isSeries) {
+        loadSeriesEpisodes(item);
+        return;
+      }
       currentSelectedItem = item;
       document.querySelectorAll('.channel-row').forEach(el => {
         el.classList.toggle('selected', el.dataset.itemId === item.id);
@@ -3403,10 +3321,12 @@
 
       // 7. Home Top Bar Buttons
       document.getElementById('btn-power').addEventListener('click', () => openModal('modal-power'));
-      document.getElementById('btn-refresh').addEventListener('click', () => {
-        renderCategories();
-        renderItems();
-        showToast('تم تحديث البيانات والقوائم بنجاح');
+      document.getElementById('btn-refresh').addEventListener('click', async () => {
+        if (!iptvState.server) {
+          showToast('أضف اشتراك IPTV من الإعدادات أولاً');
+          return;
+        }
+        try { await connectAndLoadIptv(); } catch (error) { showToast(error.message); }
       });
       document.getElementById('btn-profile').addEventListener('click', () => openModal('modal-profile'));
       document.getElementById('btn-settings').addEventListener('click', () => openModal('modal-settings'));
@@ -3451,6 +3371,15 @@
         showToast('تم إغلاق الجلسة بنجاح');
         if (window.AndroidBridge && typeof window.AndroidBridge.closeApp === 'function') {
           window.AndroidBridge.closeApp();
+        }
+      });
+
+      document.getElementById('btn-save-iptv').addEventListener('click', async () => {
+        try {
+          await connectAndLoadIptv();
+          closeAllModals();
+        } catch (error) {
+          showToast(error.message || 'فشل الاتصال باشتراك IPTV');
         }
       });
 
@@ -3510,6 +3439,27 @@
           `).join('')}
         `;
       });
+
+      // Connect automatically using the encrypted credentials saved by Android.
+      if (window.AndroidBridge && typeof window.AndroidBridge.loadIptvConfig === 'function') {
+        try {
+          const saved = JSON.parse(window.AndroidBridge.loadIptvConfig() || '{}');
+          if (saved.server && saved.username && saved.password) {
+            document.getElementById('iptv-server-url').value = saved.server;
+            document.getElementById('iptv-username').value = saved.username;
+            document.getElementById('iptv-password').value = saved.password;
+            iptvState.server = saved.server;
+            iptvState.username = saved.username;
+            iptvState.password = saved.password;
+            connectAndLoadIptv(false).catch(error => {
+              const status = document.getElementById('iptv-connection-status');
+              if (status) status.textContent = error.message;
+            });
+          }
+        } catch (_) {
+          console.warn('Saved IPTV configuration could not be loaded');
+        }
+      }
 
       // 12. Focus Channels Card Initially
       const initialFocus = document.getElementById('card-channels');
