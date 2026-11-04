@@ -41,6 +41,21 @@ jobs:
       - name: Verify Gradle installation
         run: gradle --version
 
+      - name: Validate bundled IPTV JavaScript
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path("app/src/main/assets/sonix_tv.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", html, flags=re.IGNORECASE | re.DOTALL)
+          inline_scripts = [script for script in scripts if script.strip()]
+          if not inline_scripts:
+              raise SystemExit("No inline IPTV application script was found")
+          Path("/tmp/sonix-tv-inline.js").write_text("\\n".join(inline_scripts), encoding="utf-8")
+          PY
+          node --check /tmp/sonix-tv-inline.js
+
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest --no-daemon
 

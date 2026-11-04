@@ -2544,6 +2544,7 @@
         this.hlsInstance = null;
         this.retryAttempts = 0;
         this.maxRetries = 3;
+        this.loadRequestId = 0;
         this.isFullscreen = false;
         this.epgRequestId = 0;
         this.bindEvents();
@@ -2605,6 +2606,7 @@
 
       loadItem(item) {
         if (!item) return;
+        const requestId = ++this.loadRequestId;
         this.currentItem = item;
         if (dualAudioEngine && dualAudioEngine.isActive) dualAudioEngine.stopExternalAudio(false);
         this.retryAttempts = 0;
@@ -2632,22 +2634,23 @@
           this.hlsInstance.loadSource(streamUrl);
           this.hlsInstance.attachMedia(this.videoEl);
           this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (requestId !== this.loadRequestId) return;
             this.videoEl.play().catch(() => {});
           });
           this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-              switch (data.type) {
+            if (requestId !== this.loadRequestId || !data.fatal) return;
+            switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  this.retryOrFallback(streamUrl);
+                  this.retryOrFallback(streamUrl, requestId);
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
                   this.hlsInstance.recoverMediaError();
                   break;
                 default:
                   this.hlsInstance.destroy();
+                  this.hlsInstance = null;
                   this.showError('خطأ غير متوقع في محرك HLS.');
                   break;
-              }
             }
           });
         } else {
@@ -2660,13 +2663,15 @@
         this.updateUiInfo(item);
       }
 
-      retryOrFallback(url) {
+      retryOrFallback(url, requestId = this.loadRequestId) {
+        if (requestId !== this.loadRequestId) return;
         if (this.retryAttempts < this.maxRetries) {
           this.retryAttempts++;
           this.showLoader(`إعادة محاولة الاتصال (${this.retryAttempts}/${this.maxRetries})...`);
           setTimeout(() => {
+            if (requestId !== this.loadRequestId) return;
             if (this.hlsInstance) this.hlsInstance.startLoad();
-            else this.loadItem(this.currentItem);
+            else if (this.currentItem) this.loadItem(this.currentItem);
           }, 1500);
         } else {
           this.showError('تعذر الاتصال بمصدر البث.');
@@ -2859,6 +2864,7 @@
       }
 
       stopAndRelease() {
+        this.loadRequestId++;
         if (this.hlsInstance) {
           this.hlsInstance.destroy();
           this.hlsInstance = null;
@@ -2886,6 +2892,7 @@
         this.sourceNode = null;
         this.delayMs = 0;
         this.hlsAudioInstance = null;
+        this.audioRequestId = 0;
         this.statusTextEl = document.getElementById('ext-audio-status-text');
         this.statusPillEl = document.getElementById('ext-audio-status-pill');
         this.delayLabelEl = document.getElementById('delay-value-label');
@@ -2975,6 +2982,7 @@
           return;
         }
 
+        const requestId = ++this.audioRequestId;
         this.isActive = false;
         this.activeBadgeEl.classList.remove('visible');
         this.btnExtAudio.classList.remove('is-active');
@@ -2997,21 +3005,23 @@
           this.hlsAudioInstance.loadSource(audioUrl);
           this.hlsAudioInstance.attachMedia(this.audioEl);
           this.hlsAudioInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-            this.audioEl.play().catch(() => this.handleAudioFailure());
+            if (requestId !== this.audioRequestId) return;
+            this.audioEl.play().catch(() => this.handleAudioFailure(requestId));
           });
           this.hlsAudioInstance.on(Hls.Events.ERROR, (event, data) => {
-            if (data && data.fatal) this.handleAudioFailure();
+            if (requestId === this.audioRequestId && data && data.fatal) this.handleAudioFailure(requestId);
           });
         } else {
           this.audioEl.src = audioUrl;
           this.audioEl.load();
-          this.audioEl.play().catch(() => this.handleAudioFailure());
+          this.audioEl.play().catch(() => this.handleAudioFailure(requestId));
         }
 
         // Active state is set only after the audio element actually starts playing.
       }
 
-      handleAudioFailure() {
+      handleAudioFailure(requestId = this.audioRequestId) {
+        if (requestId !== this.audioRequestId) return;
         if (this.hlsAudioInstance) {
           this.hlsAudioInstance.destroy();
           this.hlsAudioInstance = null;
@@ -3029,6 +3039,7 @@
       }
 
       stopExternalAudio(showMessage = true) {
+        this.audioRequestId++;
         if (this.hlsAudioInstance) {
           this.hlsAudioInstance.destroy();
           this.hlsAudioInstance = null;
