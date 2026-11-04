@@ -1864,24 +1864,24 @@
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div style="background:#0A0F14; padding:12px; border-radius:10px; border:1px solid var(--border-panel);">
               <div style="font-size:0.75rem; color:var(--text-muted);">اسم المستخدم:</div>
-              <div style="font-size:0.95rem; font-weight:800; color:#fff;">محمد الأحمد</div>
+              <div id="profile-username" style="font-size:0.95rem; font-weight:800; color:#fff;">غير متصل</div>
             </div>
             <div style="background:#0A0F14; padding:12px; border-radius:10px; border:1px solid var(--border-panel);">
               <div style="font-size:0.75rem; color:var(--text-muted);">نوع الباقة:</div>
-              <div style="font-size:0.95rem; font-weight:800; color:var(--accent-gold);">VIP ULTRA 4K STREAM</div>
+              <div id="profile-package" style="font-size:0.95rem; font-weight:800; color:var(--accent-gold);">غير محدد من الخادم</div>
             </div>
             <div style="background:#0A0F14; padding:12px; border-radius:10px; border:1px solid var(--border-panel);">
               <div style="font-size:0.75rem; color:var(--text-muted);">رقم المشترك (ID):</div>
-              <div style="font-size:0.95rem; font-weight:800; color:#fff; direction:ltr;">386683283365</div>
+              <div id="profile-id" style="font-size:0.95rem; font-weight:800; color:#fff; direction:ltr;">—</div>
             </div>
             <div style="background:#0A0F14; padding:12px; border-radius:10px; border:1px solid var(--border-panel);">
               <div style="font-size:0.75rem; color:var(--text-muted);">تاريخ الانتهاء:</div>
-              <div style="font-size:0.95rem; font-weight:800; color:var(--success-green);">٠٧/١٢/٢٠٢٦</div>
+              <div id="profile-expiry" style="font-size:0.95rem; font-weight:800; color:var(--success-green);">غير متاح</div>
             </div>
           </div>
           <div style="background:#151F2A; padding:12px; border-radius:10px; border:1px solid var(--border-panel); display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:0.85rem;">حالة اتصال الخادم (Server Ping):</span>
-            <span style="font-size:0.85rem; font-weight:800; color:var(--success-green);">متصل • 24ms</span>
+            <span id="profile-status" style="font-size:0.85rem; font-weight:800; color:var(--success-green);">غير متصل</span>
           </div>
         </div>
         <div class="modal-footer">
@@ -2044,7 +2044,7 @@
     // REAL XTREAM API DATA SOURCE
     // Requests run through the Android bridge to avoid WebView CORS restrictions.
     // =========================================================================
-    const iptvState = { server: '', username: '', password: '', connected: false };
+    const iptvState = { server: '', username: '', password: '', connected: false, userInfo: null };
     let seriesEpisodeMode = false;
     let currentSeriesParent = null;
     let currentSeriesEpisodes = [];
@@ -2179,6 +2179,35 @@
       }
     }
 
+    function formatXtreamExpiry(value) {
+      if (value == null || value === '' || String(value) === '0') return 'غير محدد';
+      const numeric = Number(value);
+      const date = Number.isFinite(numeric) && numeric > 0 ? new Date(numeric * 1000) : new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat('ar', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+    }
+
+    function renderProfile() {
+      const info = iptvState.userInfo;
+      const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+      };
+      if (!info) {
+        setText('profile-username', 'غير متصل');
+        setText('profile-package', 'غير متاح');
+        setText('profile-id', '—');
+        setText('profile-expiry', 'غير متاح');
+        setText('profile-status', 'لم يتم التحقق من الاشتراك');
+        return;
+      }
+      setText('profile-username', String(info.username || iptvState.username || '—'));
+      setText('profile-package', 'اشتراك Xtream Codes');
+      setText('profile-id', String(info.username || '—'));
+      setText('profile-expiry', formatXtreamExpiry(info.exp_date));
+      setText('profile-status', String(info.status || 'تم التحقق'));
+    }
+
     async function connectAndLoadIptv(showStatus = true) {
       const button = document.getElementById('btn-save-iptv');
       const status = document.getElementById('iptv-connection-status');
@@ -2193,7 +2222,8 @@
         server: iptvState.server,
         username: iptvState.username,
         password: iptvState.password,
-        connected: iptvState.connected
+        connected: iptvState.connected,
+        userInfo: iptvState.userInfo
       };
       iptvState.server = server;
       iptvState.username = username;
@@ -2234,6 +2264,7 @@
         replaceArray(MOCK_MOVIES, mapXtreamItems(loaded.movieStreams, 'movie-', 'movie'));
         replaceArray(MOCK_SERIES, mapXtreamItems(loaded.seriesStreams, 'series-', 'series'));
 
+        iptvState.userInfo = userInfo;
         iptvState.connected = true;
         seriesEpisodeMode = false;
         currentSeriesParent = null;
@@ -2252,6 +2283,7 @@
         iptvState.username = previousCredentials.username;
         iptvState.password = previousCredentials.password;
         iptvState.connected = previousCredentials.connected;
+        iptvState.userInfo = previousCredentials.userInfo;
         if (status) status.textContent = error.message || 'فشل الاتصال';
         throw error;
       } finally {
@@ -3410,7 +3442,7 @@
         }
         try { await connectAndLoadIptv(); } catch (error) { showToast(error.message); }
       });
-      document.getElementById('btn-profile').addEventListener('click', () => openModal('modal-profile'));
+      document.getElementById('btn-profile').addEventListener('click', () => { renderProfile(); openModal('modal-profile'); });
       document.getElementById('btn-settings').addEventListener('click', () => openModal('modal-settings'));
       document.getElementById('btn-search').addEventListener('click', () => openModal('modal-search'));
 
