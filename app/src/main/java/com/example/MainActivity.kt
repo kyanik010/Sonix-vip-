@@ -2,6 +2,10 @@ package com.example
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.net.Uri
+import android.util.Base64
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.view.KeyEvent
 import android.view.WindowManager
 import android.webkit.PermissionRequest
@@ -12,6 +16,15 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 class MainActivity : ComponentActivity() {
 
@@ -46,7 +59,9 @@ class MainActivity : ComponentActivity() {
 
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                        return false
+                        val target = request?.url ?: return true
+                        // Keep the JavaScript bridge confined to the bundled local app.
+                        return target.scheme != "file" || target.host != null
                     }
                 }
 
@@ -80,11 +95,113 @@ class MainActivity : ComponentActivity() {
     }
 
     class WebAppInterface(private val activity: MainActivity) {
+        private val preferences by lazy {
+            activity.getSharedPreferences("sonix_iptv_secure", MODE_PRIVATE)
+        }
+        private val keyAlias = "sonix_iptv_credentials_key"
+
         @android.webkit.JavascriptInterface
         fun closeApp() {
-            activity.runOnUiThread {
-                activity.finish()
+            activity.runOnUiThread { activity.finish() }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun fetchIptv(address: String): String {
+            var connection: HttpURLConnection? = null
+            return try {
+                val parsed = Uri.parse(address)
+                require(parsed.scheme == "http" || parsed.scheme == "https")
+                require(!parsed.host.isNullOrBlank())
+                connection = (URL(address).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 15000
+                    readTimeout = 20000
+                    instanceFollowRedirects = true
+                    setRequestProperty("Accept", "application/json")
+                    setRequestProperty("User-Agent", "SONIX-TV/1.0")
+                }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val output = ByteArrayOutputStream()
+                stream?.use { input ->
+                    val buffer = ByteArray(8192)
+                    var total = 0
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        require(total <= 20 * 1024 * 1024) { "IPTV response too large" }
+                        output.write(buffer, 0, count)
+                    }
+                }
+                JSONObject()
+                    .put("ok", status in 200..299)
+                    .put("status", status)
+                    .put("body", output.toString(Charsets.UTF_8.name()))
+                    .toString()
+            } catch (_: Exception) {
+                JSONObject().put("ok", false).put("status", 0).put("body", "").toString()
+            } finally {
+                connection?.disconnect()
             }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun saveIptvConfig(server: String, username: String, password: String): Boolean {
+            return try {
+                require(server.startsWith("http://") || server.startsWith("https://"))
+                require(username.isNotBlank() && password.isNotBlank())
+                val payload = JSONObject()
+                    .put("server", server)
+                    .put("username", username)
+                    .put("password", password)
+                    .toString()
+                    .toByteArray(Charsets.UTF_8)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
+                val encrypted = cipher.doFinal(payload)
+                val packed = cipher.iv + encrypted
+                preferences.edit()
+                    .putString("credentials", Base64.encodeToString(packed, Base64.NO_WRAP))
+                    .apply()
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun loadIptvConfig(): String {
+            return try {
+                val encoded = preferences.getString("credentials", null) ?: return "{}"
+                val packed = Base64.decode(encoded, Base64.NO_WRAP)
+                require(packed.size > 12)
+                val iv = packed.copyOfRange(0, 12)
+                val ciphertext = packed.copyOfRange(12, packed.size)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
+                String(cipher.doFinal(ciphertext), Charsets.UTF_8)
+            } catch (_: Exception) {
+                "{}"
+            }
+        }
+
+        private fun getOrCreateKey(): SecretKey {
+            val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+            val existing = keyStore.getKey(keyAlias, null) as? SecretKey
+            if (existing != null) return existing
+            val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+            generator.init(
+                KeyGenParameterSpec.Builder(
+                    keyAlias,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .setRandomizedEncryptionRequired(true)
+                    .build()
+            )
+            return generator.generateKey()
         }
     }
 
