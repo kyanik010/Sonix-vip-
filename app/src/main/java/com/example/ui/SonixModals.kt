@@ -232,26 +232,20 @@ fun EpgDialog(channel: Channel, onDismiss: () -> Unit) {
                         .background(SonixSelectedItemBg)
                         .padding(14.dp)
                 ) {
-                    Text(text = "يُعرض الآن", color = SonixDangerRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = channel.epgTitle, color = SonixTextWhite, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-                    Text(text = "٢٠:٣٠ - ٢٣:١٥ (متبقي ٤٠ دقيقة)", color = SonixAccentGold, fontSize = 11.sp)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = channel.epgDesc, color = SonixTextSilver, fontSize = 11.sp, lineHeight = 16.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(progress = { 0.65f }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(2.dp)), color = SonixFocusBlue, trackColor = SonixBgScreen)
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SonixBgScreen)
-                        .padding(12.dp)
-                ) {
-                    Text(text = "البرنامج التالي:", color = SonixTextMuted, fontSize = 10.sp)
-                    Text(text = channel.epgNext, color = SonixTextWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "٢٣:١٥ - ٠٠:٣٠", color = SonixTextSilver, fontSize = 11.sp)
+                    if (channel.epgTitle.isNotBlank()) {
+                        Text(text = channel.epgTitle, color = SonixTextWhite, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                    } else {
+                        Text(text = "لا تتوفر بيانات البرنامج الحالي من مزود الاشتراك.", color = SonixTextSilver, fontSize = 12.sp)
+                    }
+                    if (channel.epgDesc.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(text = channel.epgDesc, color = SonixTextSilver, fontSize = 11.sp, lineHeight = 16.sp)
+                    }
+                    if (channel.epgNext.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = "البرنامج التالي:", color = SonixTextMuted, fontSize = 10.sp)
+                        Text(text = channel.epgNext, color = SonixTextWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
                 Spacer(modifier = Modifier.height(14.dp))
                 Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End), colors = ButtonDefaults.buttonColors(containerColor = SonixSelectedItemBg)) {
@@ -272,35 +266,7 @@ fun ProfileDialog(onDismiss: () -> Unit) {
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = null, tint = SonixTextSilver) }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Column(modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(SonixBgScreen).padding(10.dp)) {
-                        Text("اسم المستخدم:", color = SonixTextMuted, fontSize = 10.sp)
-                        Text("محمد الأحمد", color = SonixTextWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(SonixBgScreen).padding(10.dp)) {
-                        Text("نوع الباقة:", color = SonixTextMuted, fontSize = 10.sp)
-                        Text("VIP ULTRA 4K", color = SonixAccentGold, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Column(modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(SonixBgScreen).padding(10.dp)) {
-                        Text("رقم المشترك:", color = SonixTextMuted, fontSize = 10.sp)
-                        Text("386683283365", color = SonixTextWhite, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                    }
-                    Column(modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(SonixBgScreen).padding(10.dp)) {
-                        Text("تاريخ الانتهاء:", color = SonixTextMuted, fontSize = 10.sp)
-                        Text("٠٧/١٢/٢٠٢٦", color = SonixSuccessGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(SonixSelectedItemBg).padding(10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("حالة اتصال السيرفر:", color = SonixTextSilver, fontSize = 12.sp)
-                    Text("متصل • 24ms", color = SonixSuccessGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
+                Text("تُعرض معلومات المشترك بعد جلبها من خادم IPTV.", color = SonixTextSilver, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(14.dp))
                 Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End), colors = ButtonDefaults.buttonColors(containerColor = SonixSelectedItemBg)) {
                     Text("تم", color = SonixTextWhite)
@@ -312,7 +278,7 @@ fun ProfileDialog(onDismiss: () -> Unit) {
 
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
-    var serverUrl by remember { mutableStateOf("http://iptv.server.com:8080") }
+    var serverUrl by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -324,7 +290,7 @@ fun SettingsDialog(onDismiss: () -> Unit) {
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = null, tint = SonixTextSilver) }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                Text("ربط اشتراك IPTV حقيقي (Xtream Codes / M3U):", color = SonixFocusBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("ربط اشتراك IPTV عبر Xtream Codes:", color = SonixFocusBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
                     value = serverUrl,
