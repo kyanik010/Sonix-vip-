@@ -2222,6 +2222,11 @@
           loaded[key] = responses[index];
         });
 
+        if (window.AndroidBridge && typeof window.AndroidBridge.saveIptvConfig === 'function') {
+          const saved = window.AndroidBridge.saveIptvConfig(server, username, password);
+          if (!saved) throw new Error('تم الاتصال لكن تعذر حفظ بيانات الاشتراك بأمان');
+        }
+
         replaceArray(MOCK_CATEGORIES, mapXtreamCategories(loaded.liveCategories, 'live-', true));
         replaceArray(MOCK_MOVIE_CATEGORIES, mapXtreamCategories(loaded.movieCategories, 'movie-'));
         replaceArray(MOCK_SERIES_CATEGORIES, mapXtreamCategories(loaded.seriesCategories, 'series-'));
@@ -2230,10 +2235,6 @@
         replaceArray(MOCK_SERIES, mapXtreamItems(loaded.seriesStreams, 'series-', 'series'));
 
         iptvState.connected = true;
-        if (window.AndroidBridge && typeof window.AndroidBridge.saveIptvConfig === 'function') {
-          const saved = window.AndroidBridge.saveIptvConfig(server, username, password);
-          if (!saved) throw new Error('تم الاتصال لكن تعذر حفظ بيانات الاشتراك بأمان');
-        }
         seriesEpisodeMode = false;
         currentSeriesParent = null;
         currentSeriesEpisodes = [];
