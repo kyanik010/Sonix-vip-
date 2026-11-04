@@ -2249,14 +2249,14 @@
     function mapXtreamItems(rows, prefix, type) {
       return (Array.isArray(rows) ? rows : [])
         .filter(row => row && (type === 'series' ? row.series_id != null : row.stream_id != null) && String(row.name || '').trim())
-        .map((row, index) => {
+        .map(row => {
         const categoryId = row.category_id == null ? '' : String(row.category_id);
-        const category = prefix + categoryId;
+        const category = categoryId ? prefix + categoryId : prefix + '__uncategorized__';
         const categoryName = type === 'live'
-          ? (iptvLiveCategories.find(c => c.id === category)?.name || 'قنوات')
+          ? (iptvLiveCategories.find(c => c.id === category)?.name || 'غير مصنف')
           : (type === 'movie'
-            ? (iptvVodCategories.find(c => c.id === category)?.name || 'أفلام')
-            : (iptvSeriesCategories.find(c => c.id === category)?.name || 'مسلسلات'));
+            ? (iptvVodCategories.find(c => c.id === category)?.name || 'غير مصنف')
+            : (iptvSeriesCategories.find(c => c.id === category)?.name || 'غير مصنف'));
         const id = String(type === 'live' ? row.stream_id : (type === 'movie' ? row.stream_id : row.series_id));
         return {
           id: type + '-' + id,
@@ -2274,6 +2274,27 @@
           desc: row.plot || '',
           isSeries: type === 'series'
         };
+      });
+    }
+
+    function ensureCatalogCategories(categories, items, prefix) {
+      const known = new Set(categories.map(category => category.id));
+      const needsUncategorized = items.some(item => !known.has(item.category));
+      if (needsUncategorized) {
+        const id = prefix + '__uncategorized__';
+        if (!known.has(id)) {
+          categories.push({ id, sourceId: '', name: 'غير مصنف', count: 0 });
+          known.add(id);
+        }
+        items.forEach(item => {
+          if (!known.has(item.category)) {
+            item.category = id;
+            item.categoryName = 'غير مصنف';
+          }
+        });
+      }
+      categories.forEach(category => {
+        category.count = items.filter(item => item.category === category.id).length;
       });
     }
 
@@ -2362,6 +2383,13 @@
           throw new Error('بيانات الاشتراك غير صحيحة أو الاشتراك غير نشط');
         }
 
+        // Save only after the provider has authenticated the credentials. A failed
+        // optional catalog endpoint must not force the customer to log in again.
+        if (window.AndroidBridge && typeof window.AndroidBridge.saveIptvConfig === 'function') {
+          const saved = window.AndroidBridge.saveIptvConfig(server, username, password);
+          if (!saved) throw new Error('تم التحقق من الاشتراك لكن تعذر حفظ بياناته بأمان');
+        }
+
         const actions = [
           ['get_live_categories', 'liveCategories'],
           ['get_live_streams', 'liveStreams'],
@@ -2370,19 +2398,18 @@
           ['get_series_categories', 'seriesCategories'],
           ['get_series', 'seriesStreams']
         ];
-        const responses = await Promise.all(actions.map(([action]) => xtreamRequest(action)));
+        const results = await Promise.allSettled(actions.map(([action]) => xtreamRequest(action)));
         const loaded = {};
+        const failedCatalogs = [];
         actions.forEach(([action, key], index) => {
-          if (!Array.isArray(responses[index])) {
-            throw new Error('استجابة غير صالحة من الخادم عند تحميل: ' + action);
+          const result = results[index];
+          if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+            loaded[key] = result.value;
+          } else {
+            loaded[key] = [];
+            failedCatalogs.push(action);
           }
-          loaded[key] = responses[index];
         });
-
-        if (window.AndroidBridge && typeof window.AndroidBridge.saveIptvConfig === 'function') {
-          const saved = window.AndroidBridge.saveIptvConfig(server, username, password);
-          if (!saved) throw new Error('تم الاتصال لكن تعذر حفظ بيانات الاشتراك بأمان');
-        }
 
         replaceArray(iptvLiveCategories, mapXtreamCategories(loaded.liveCategories, 'live-', true));
         replaceArray(iptvVodCategories, mapXtreamCategories(loaded.movieCategories, 'movie-'));
@@ -2390,6 +2417,9 @@
         replaceArray(iptvLiveChannels, mapXtreamItems(loaded.liveStreams, 'live-', 'live'));
         replaceArray(iptvVodMovies, mapXtreamItems(loaded.movieStreams, 'movie-', 'movie'));
         replaceArray(iptvSeries, mapXtreamItems(loaded.seriesStreams, 'series-', 'series'));
+        ensureCatalogCategories(iptvLiveCategories, iptvLiveChannels, 'live-');
+        ensureCatalogCategories(iptvVodCategories, iptvVodMovies, 'movie-');
+        ensureCatalogCategories(iptvSeriesCategories, iptvSeries, 'series-');
 
         iptvState.userInfo = userInfo;
         iptvState.connected = true;
@@ -2403,7 +2433,13 @@
         refreshCurrentContent();
 
         const counts = 'القنوات: ' + iptvLiveChannels.length + ' | الأفلام: ' + iptvVodMovies.length + ' | المسلسلات: ' + iptvSeries.length;
-        if (status) status.textContent = 'تم تسجيل الدخول بنجاح — ' + counts;
+        if (status) {
+          status.textContent = 'تم تسجيل الدخول بنجاح — ' + counts +
+            (failedCatalogs.length ? ' | تعذر تحميل بعض الأقسام: ' + failedCatalogs.join('، ') : '');
+        }
+        if (failedCatalogs.length) {
+          showToast('تم تسجيل الدخول؛ بعض أقسام الاشتراك غير متاحة حالياً');
+        }
         sessionAuthenticated = true;
         switchView('view-home');
         if (showStatus) showToast('مرحباً بك في SONIX TV');
@@ -3816,7 +3852,9 @@
         if (!total) addMessage('لم يتم العثور على أي نتائج');
       });
 
-      // Restore saved credentials into the login form, but always require an explicit login.
+      // Restore encrypted credentials and validate the subscription automatically.
+      // The login form remains available if the saved account is no longer valid.
+      let restoredCredentials = false;
       if (window.AndroidBridge && typeof window.AndroidBridge.loadIptvConfig === 'function') {
         try {
           const saved = JSON.parse(window.AndroidBridge.loadIptvConfig() || '{}');
@@ -3824,17 +3862,26 @@
             document.getElementById('iptv-server-url').value = saved.server;
             document.getElementById('iptv-username').value = saved.username;
             document.getElementById('iptv-password').value = saved.password;
+            restoredCredentials = true;
           }
         } catch (_) {
           console.warn('Saved IPTV configuration could not be loaded');
         }
       }
 
-      // Always start on the login screen. No account data is loaded until submit.
       switchView('view-login');
-      const initialFocus = document.getElementById('iptv-server-url');
-      if (initialFocus && remoteNavigator) {
-        remoteNavigator.focusElement(initialFocus);
+      if (restoredCredentials) {
+        const status = document.getElementById('iptv-connection-status');
+        if (status) status.textContent = 'جارٍ التحقق من الاشتراك المحفوظ...';
+        connectAndLoadIptv(false).catch(error => {
+          switchView('view-login');
+          if (status) status.textContent = (error && error.message) || 'تعذر استعادة الاشتراك؛ تحقق من الاتصال أو بيانات الدخول';
+          const initialFocus = document.getElementById('iptv-server-url');
+          if (initialFocus && remoteNavigator) remoteNavigator.focusElement(initialFocus);
+        });
+      } else {
+        const initialFocus = document.getElementById('iptv-server-url');
+        if (initialFocus && remoteNavigator) remoteNavigator.focusElement(initialFocus);
       }
     });
   </script>
