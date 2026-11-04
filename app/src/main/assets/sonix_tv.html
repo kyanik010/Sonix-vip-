@@ -2320,7 +2320,7 @@
         setText('home-series-count', 'المسلسلات غير محمّلة');
         return;
       }
-      const accountName = String(info.username || iptvState.username || '—');
+      const accountName = String(info.username || '—');
       const expiry = formatXtreamExpiry(info.exp_date);
       setText('profile-username', accountName);
       setText('profile-package', info.is_trial == null ? 'غير محدد من الخادم' : (Number(info.is_trial) === 1 ? 'تجريبي' : 'غير تجريبي'));
