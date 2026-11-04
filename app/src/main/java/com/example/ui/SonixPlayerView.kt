@@ -93,28 +93,7 @@ fun SonixPlayerView(
             )
 
             // Top Left Match Overlay
-            Row(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .align(Alignment.TopStart)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black.copy(alpha = 0.8f))
-                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(SonixDangerRed)
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                ) {
-                    Text(text = "LIVE", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                }
-                Text(text = "0 - 2", color = SonixAccentGold, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                Text(text = "55:07", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
+            // No score or match clock is shown without verified provider data.
 
             // Top Right External Audio Active Indicator
             if (dualAudioState.isActive) {
@@ -261,11 +240,9 @@ fun SonixPlayerView(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                Text(text = "FHD 1080p 60fps", color = SonixFocusBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "HLS Live Stream", color = SonixTextMuted, fontSize = 10.sp)
                 Icon(Icons.Default.Fullscreen, contentDescription = null, tint = SonixTextSilver, modifier = Modifier.size(20.dp))
             }
         }
