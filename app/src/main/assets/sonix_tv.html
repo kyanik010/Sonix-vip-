@@ -2261,7 +2261,7 @@
         return {
           id: type + '-' + id,
           sourceId: id,
-          number: Number(row.num || index + 1),
+          number: row.num == null || row.num === '' ? '' : String(row.num),
           name: String(row.name).trim(),
           category,
           categoryName,
