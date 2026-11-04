@@ -1483,17 +1483,17 @@
         <div class="user-card focusable" id="user-info-card" tabindex="0">
           <div class="user-card-item">
             <span class="user-card-label">اسم المستخدم:</span>
-            <span class="user-card-name">محمد الأحمد (VIP)</span>
+            <span id="home-username" class="user-card-name">غير متصل</span>
           </div>
           <div class="user-card-divider"></div>
           <div class="user-card-item">
             <span class="user-card-label">رقم المشترك:</span>
-            <span class="user-card-id">386683283365</span>
+            <span id="home-user-id" class="user-card-id">—</span>
           </div>
           <div class="user-card-divider"></div>
           <div class="user-card-item">
             <span class="user-card-label">تاريخ انتهاء الصلاحية:</span>
-            <span class="user-card-date">٠٧/١٢/٢٠٢٦</span>
+            <span id="home-expiry" class="user-card-date">غير متاح</span>
           </div>
         </div>
       </div>
@@ -1537,9 +1537,9 @@
         <!-- Left: Now Playing Ticker -->
         <div class="now-playing-ticker">
           <span class="ticker-label">أنت تشاهد:</span>
-          <span id="ticker-cat" style="color:var(--text-silver);">beIN SPORTS HD</span>
+          <span id="ticker-cat" style="color:var(--text-silver);">—</span>
           <span class="ticker-sep">&gt;&gt;</span>
-          <span id="ticker-ch" class="ticker-channel">beIN SPORTS 1 HD</span>
+          <span id="ticker-ch" class="ticker-channel">اختر محتوى للتشغيل</span>
         </div>
       </div>
 
@@ -1603,8 +1603,8 @@
         <!-- 3. Items Column (~28%) -->
         <div class="live-channels-col">
           <div class="channels-header-badge">
-            <div id="channels-badge-name" class="channels-header-text">beIN SPORTS HD</div>
-            <div id="channels-badge-count" class="channels-count-tag">١٤ قناة</div>
+            <div id="channels-badge-name" class="channels-header-text">التصنيفات</div>
+            <div id="channels-badge-count" class="channels-count-tag">٠ عناصر</div>
           </div>
           <div id="channels-list-container" class="channels-list">
             <!-- Dynamically populated rows -->
@@ -1632,8 +1632,8 @@
             <!-- Top Left Match Score / Status Overlay -->
             <div id="player-score-overlay" class="player-match-overlay">
               <span class="live-pill">LIVE</span>
-              <span class="match-score">0 - 2</span>
-              <span class="match-time">55:07</span>
+              <span class="match-score">—</span>
+              <span class="match-time">—</span>
             </div>
 
             <!-- Top Right External Audio Active Indicator -->
@@ -1662,7 +1662,7 @@
 
           <!-- Channel / Content Info Row -->
           <div class="player-info-row">
-            <div id="player-ch-name" class="player-channel-title">beIN SPORTS 1 HD</div>
+            <div id="player-ch-name" class="player-channel-title">اختر محتوى للتشغيل</div>
             <button id="player-heart-btn" class="player-fav-btn focusable" title="إضافة للمفضلة">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -1673,7 +1673,7 @@
           <!-- Metadata Box for VOD (Movies / Series) -->
           <div id="player-vod-meta-box" class="vod-meta-box" style="display:none;">
             <div class="vod-meta-row">
-              <span id="vod-rating-tag" class="vod-rating-pill">★ 8.6/10</span>
+              <span id="vod-rating-tag" class="vod-rating-pill">التقييم غير متاح</span>
               <span id="vod-specs-tag" style="color:var(--focus-blue); font-weight:700;">4K HDR • 166 دقيقة</span>
               <span id="vod-cat-tag" style="color:var(--text-silver);">خيال علمي</span>
             </div>
@@ -1826,7 +1826,7 @@
         <div class="modal-header">
           <div class="modal-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-            <span id="epg-modal-channel-name">دليل البرامج - beIN SPORTS 1 HD</span>
+            <span id="epg-modal-channel-name">دليل البرامج</span>
           </div>
           <button id="close-epg" class="modal-close-btn focusable">&times;</button>
         </div>
@@ -1834,18 +1834,18 @@
           <div class="epg-timeline-box">
             <div class="epg-card-curr">
               <span class="epg-badge-live">يُعرض الآن</span>
-              <div id="epg-curr-title" class="epg-title">الاستوديو التحليلي - دوري أبطال أوروبا</div>
-              <div id="epg-curr-time" style="font-size:0.8rem; color:var(--accent-gold); font-weight:700;">٢٠:٣٠ - ٢٣:١٥ (متبقي ٤٢ دقيقة)</div>
-              <div id="epg-curr-desc" class="epg-desc">تغطية خاصة ومباشرة لقمة مباريات الليلة مع نخبة من ألمع نجوم التحليل الرياضي في العالم العربي.</div>
+              <div id="epg-curr-title" class="epg-title">لا تتوفر بيانات EPG</div>
+              <div id="epg-curr-time" style="font-size:0.8rem; color:var(--accent-gold); font-weight:700;">—</div>
+              <div id="epg-curr-desc" class="epg-desc">لم يتم تحميل دليل البرامج بعد.</div>
               <div class="epg-progress-bar">
-                <div id="epg-progress-percent" class="epg-progress-fill" style="width:65%;"></div>
+                <div id="epg-progress-percent" class="epg-progress-fill" style="width:0%;"></div>
               </div>
             </div>
 
             <div style="background:#0A0F14; border:1px solid var(--border-panel); border-radius:12px; padding:12px 16px;">
               <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">البرنامج التالي:</div>
-              <div id="epg-next-title" style="font-size:0.95rem; font-weight:800; color:#fff; margin-top:2px;">حصاد الأهداف وملخص الجولة</div>
-              <div id="epg-next-time" style="font-size:0.78rem; color:var(--text-silver); margin-top:2px;">٢٣:١٥ - ٠٠:٣٠</div>
+              <div id="epg-next-title" style="font-size:0.95rem; font-weight:800; color:#fff; margin-top:2px;">لا توجد بيانات للبرنامج التالي</div>
+              <div id="epg-next-time" style="font-size:0.78rem; color:var(--text-silver); margin-top:2px;">—</div>
             </div>
           </div>
         </div>
