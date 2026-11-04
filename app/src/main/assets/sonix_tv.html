@@ -3486,40 +3486,49 @@
       document.getElementById('global-search-input').addEventListener('input', (e) => {
         const query = e.target.value.trim().toLowerCase();
         const resultsContainer = document.getElementById('global-search-results');
+        resultsContainer.replaceChildren();
+        const addMessage = (message) => {
+          const node = document.createElement('div');
+          node.style.cssText = 'text-align:center; color:var(--text-muted); padding:20px; font-size:0.85rem;';
+          node.textContent = message;
+          resultsContainer.appendChild(node);
+        };
         if (!query) {
-          resultsContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px; font-size:0.85rem;">ابدأ بالكتابة للبحث الفوري...</div>';
+          addMessage('ابدأ بالكتابة للبحث الفوري...');
           return;
         }
 
-        const matchedChannels = MOCK_CHANNELS.filter(c => c.name.toLowerCase().includes(query));
-        const matchedMovies = MOCK_MOVIES.filter(m => m.name.toLowerCase().includes(query));
-        const matchedSeries = MOCK_SERIES.filter(s => s.name.toLowerCase().includes(query));
-
-        if (!matchedChannels.length && !matchedMovies.length && !matchedSeries.length) {
-          resultsContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">لم يتم العثور على أي نتائج</div>';
-          return;
-        }
-
-        resultsContainer.innerHTML = `
-          ${matchedChannels.map(c => `
-            <div class="audio-picker-item focusable" style="background:#0A0F14;" onclick="closeAllModals(); switchView('view-live'); setAppMode('live'); selectItem(MOCK_CHANNELS.find(x=>x.id==='${c.id}'));">
-              <span style="color:#fff; font-weight:700;">📺 ${c.name}</span>
-              <span style="color:var(--focus-blue); font-size:0.75rem;">قناة مباشرة</span>
-            </div>
-          `).join('')}
-          ${matchedMovies.map(m => `
-            <div class="audio-picker-item focusable" style="background:#0A0F14;" onclick="closeAllModals(); switchView('view-live'); setAppMode('movies'); selectItem(MOCK_MOVIES.find(x=>x.id==='${m.id}'));">
-              <span style="color:#fff; font-weight:700;">🎬 ${m.name}</span>
-              <span style="color:var(--accent-gold); font-size:0.75rem;">فيلم ${m.quality}</span>
-            </div>
-          `).join('')}
-          ${matchedSeries.map(s => `
-            <div class="audio-picker-item focusable" style="background:#0A0F14;" onclick="closeAllModals(); switchView('view-live'); setAppMode('series'); selectItem(MOCK_SERIES.find(x=>x.id==='${s.id}'));">
-              <span style="color:#fff; font-weight:700;">🍿 ${s.name}</span>
-              <span style="color:var(--focus-blue); font-size:0.75rem;">مسلسل ${s.quality}</span>
-            </div>
-          `).join('')}
-        `;
+        const groups = [
+          { mode: 'live', icon: '📺', label: 'قناة مباشرة', items: MOCK_CHANNELS, quality: false },
+          { mode: 'movies', icon: '🎬', label: 'فيلم', items: MOCK_MOVIES, quality: true },
+          { mode: 'series', icon: '🍿', label: 'مسلسل', items: MOCK_SERIES, quality: true }
+        ];
+        let total = 0;
+        groups.forEach(group => {
+          group.items.filter(item => String(item.name || '').toLowerCase().includes(query)).forEach(item => {
+            total++;
+            const row = document.createElement('div');
+            row.className = 'audio-picker-item focusable';
+            row.style.background = '#0A0F14';
+            row.tabIndex = 0;
+            const name = document.createElement('span');
+            name.style.cssText = 'color:#fff; font-weight:700;';
+            name.textContent = group.icon + ' ' + item.name;
+            const meta = document.createElement('span');
+            meta.style.cssText = 'font-size:0.75rem;';
+            meta.style.color = group.mode === 'movies' ? 'var(--accent-gold)' : 'var(--focus-blue)';
+            meta.textContent = group.quality && item.quality ? group.label + ' ' + item.quality : group.label;
+            row.append(name, meta);
+            row.addEventListener('click', () => {
+              closeAllModals();
+              switchView('view-live');
+              setAppMode(group.mode);
+              selectItem(item);
+            });
+            resultsContainer.appendChild(row);
+          });
+        });
+        if (!total) addMessage('لم يتم العثور على أي نتائج');
       });
 
       // Connect automatically using the encrypted credentials saved by Android.
