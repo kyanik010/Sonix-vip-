@@ -1431,7 +1431,7 @@
     .epg-progress-fill {
       height: 100%;
       background: linear-gradient(90deg, var(--focus-blue) 0%, var(--accent-gold) 100%);
-      width: 58%;
+      width: 0%;
     }
 
     /* Toast Notification */
@@ -1528,8 +1528,8 @@
 
         <!-- Center: Arabic-Indic Clock -->
         <div class="home-clock-container">
-          <div id="home-clock-digits" class="home-clock">٠١:٠٤ ص</div>
-          <div id="home-clock-date" class="home-date">الأربعاء، ٠٤ نوفمبر</div>
+          <div id="home-clock-digits" class="home-clock">--:--</div>
+          <div id="home-clock-date" class="home-date">—</div>
         </div>
 
         <!-- Top Left: 5 Glass Tool Buttons -->
@@ -1582,7 +1582,7 @@
             </svg>
           </div>
           <div class="hero-title">أفلام</div>
-          <div class="hero-subtitle">أحدث الأفلام والسينما العالمية</div>
+          <div id="home-movies-count" class="hero-subtitle">المحتوى المتاح في اشتراكك</div>
         </div>
 
         <!-- Card 2: مسلسلات (Series) -->
@@ -1595,7 +1595,7 @@
             </svg>
           </div>
           <div class="hero-title">مسلسلات</div>
-          <div class="hero-subtitle">أقوى المسلسلات العربية والأجنبية</div>
+          <div id="home-series-count" class="hero-subtitle">المحتوى المتاح في اشتراكك</div>
         </div>
 
         <!-- Card 3: قنوات (Live TV) -->
@@ -1610,7 +1610,7 @@
             </svg>
           </div>
           <div class="hero-title">قنوات</div>
-          <div class="hero-subtitle">البث المباشر لجميع القنوات</div>
+          <div id="home-live-count" class="hero-subtitle">القنوات المتاحة في اشتراكك</div>
         </div>
 
       </div>
@@ -1767,7 +1767,7 @@
             </button>
 
             <!-- Top Left Match Score / Status Overlay -->
-            <div id="player-score-overlay" class="player-match-overlay">
+            <div id="player-score-overlay" class="player-match-overlay" style="display:none;">
               <span class="live-pill">LIVE</span>
               <span class="match-score">—</span>
               <span class="match-time">—</span>
@@ -1791,7 +1791,7 @@
 
             <!-- Error Overlay -->
             <div id="player-error" class="player-error-overlay">
-              <div style="font-size:1rem; font-weight:800; color:var(--danger-red);">تعذر تحميل البث المباشر</div>
+              <div style="font-size:1rem; font-weight:800; color:var(--danger-red);">تعذر تشغيل المحتوى</div>
               <div data-error-message style="font-size:0.8rem; color:var(--text-silver);">يرجى التأكد من اتصال الإنترنت أو اختيار مصدر آخر</div>
               <button id="player-retry-action" class="player-retry-btn focusable">إعادة المحاولة</button>
             </div>
@@ -1814,7 +1814,7 @@
               <span id="vod-specs-tag" style="color:var(--focus-blue); font-weight:700;">المعلومات غير متاحة</span>
               <span id="vod-cat-tag" style="color:var(--text-silver);">—</span>
             </div>
-            <div id="vod-desc-text" class="vod-synopsis">يواصل بول أتريدس رحلته الأسطورية متحالفا مع تشاني وفريمن للانتقام من المتآمرين الذين دمروا عائلته.</div>
+            <div id="vod-desc-text" class="vod-synopsis">لا يوجد وصف متاح من مزود الاشتراك.</div>
           </div>
 
           <!-- Action Buttons: EPG / Play Movie + Favorites + Dual Audio -->
@@ -1970,7 +1970,7 @@
         <div class="modal-body">
           <div class="epg-timeline-box">
             <div class="epg-card-curr">
-              <span class="epg-badge-live">يُعرض الآن</span>
+              <span id="epg-current-badge" class="epg-badge-live" style="display:none;">يُعرض الآن</span>
               <div id="epg-curr-title" class="epg-title">لا تتوفر بيانات EPG</div>
               <div id="epg-curr-time" style="font-size:0.8rem; color:var(--accent-gold); font-weight:700;">—</div>
               <div id="epg-curr-desc" class="epg-desc">لم يتم تحميل دليل البرامج بعد.</div>
@@ -2011,7 +2011,7 @@
               <div id="profile-username" style="font-size:0.95rem; font-weight:800; color:#fff;">غير متصل</div>
             </div>
             <div style="background:#0A0F14; padding:12px; border-radius:10px; border:1px solid var(--border-panel);">
-              <div style="font-size:0.75rem; color:var(--text-muted);">نوع الباقة:</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">نوع الاشتراك:</div>
               <div id="profile-package" style="font-size:0.95rem; font-weight:800; color:var(--accent-gold);">غير محدد من الخادم</div>
             </div>
             <div style="background:#0A0F14; padding:12px; border-radius:10px; border:1px solid var(--border-panel);">
@@ -2024,7 +2024,7 @@
             </div>
           </div>
           <div style="background:#151F2A; padding:12px; border-radius:10px; border:1px solid var(--border-panel); display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.85rem;">حالة اتصال الخادم (Server Ping):</span>
+            <span style="font-size:0.85rem;">حالة الاشتراك:</span>
             <span id="profile-status" style="font-size:0.85rem; font-weight:800; color:var(--success-green);">غير متصل</span>
           </div>
         </div>
@@ -2049,20 +2049,7 @@
         <div class="modal-body">
           <div>
             <div style="font-size:0.88rem; font-weight:800; color:var(--focus-blue); margin-bottom:8px;">إعدادات المشغل والصوت:</div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
-                <span>محرك الفيديو:</span>
-                <span style="font-weight:700; color:#fff;">HLS.js عبر WebView</span>
-              </label>
-              <label style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
-                <span>محرك الصوت الخارجي:</span>
-                <span style="font-weight:700; color:var(--accent-gold);">Web Audio API (تأخير يدوي)</span>
-              </label>
-              <label style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
-                <span>سعة التخزين المؤقت (Buffer):</span>
-                <span style="font-weight:700; color:#fff;">متوسط (15 ثانية)</span>
-              </label>
-            </div>
+            <div style="font-size:0.82rem; color:var(--text-silver);">تُعرض بيانات المحتوى والاشتراك من خادم IPTV المتصل فقط.</div>
           </div>
 
         </div>
@@ -2144,12 +2131,12 @@
     let currentAppMode = 'live';
 
     // Live data is populated from the connected IPTV provider.
-    const MOCK_CATEGORIES = [];
-    const MOCK_CHANNELS = [];
-    const MOCK_MOVIE_CATEGORIES = [];
-    const MOCK_MOVIES = [];
-    const MOCK_SERIES_CATEGORIES = [];
-    const MOCK_SERIES = [];
+    const iptvLiveCategories = [];
+    const iptvLiveChannels = [];
+    const iptvVodCategories = [];
+    const iptvVodMovies = [];
+    const iptvSeriesCategories = [];
+    const iptvSeries = [];
 
     const FAVORITES_STORAGE_KEY = 'sonix_favorites_v1';
     function loadSavedFavorites() {
@@ -2255,34 +2242,38 @@
     }
 
     function mapXtreamCategories(rows, prefix, includeFavorites = false) {
-      const mapped = (Array.isArray(rows) ? rows : []).map(row => ({
-        id: prefix + String(row.category_id),
-        sourceId: String(row.category_id),
-        name: String(row.category_name || 'بدون اسم'),
-        count: 0
-      }));
+      const mapped = (Array.isArray(rows) ? rows : [])
+        .filter(row => row && row.category_id != null && String(row.category_name || '').trim())
+        .map(row => ({
+          id: prefix + String(row.category_id),
+          sourceId: String(row.category_id),
+          name: String(row.category_name).trim(),
+          count: 0
+        }));
       if (includeFavorites) mapped.push({ id: 'cat-fav', name: 'المفضلة', count: 0 });
       return mapped;
     }
 
     function mapXtreamItems(rows, prefix, type) {
-      return (Array.isArray(rows) ? rows : []).map((row, index) => {
+      return (Array.isArray(rows) ? rows : [])
+        .filter(row => row && (type === 'series' ? row.series_id != null : row.stream_id != null) && String(row.name || '').trim())
+        .map((row, index) => {
         const categoryId = row.category_id == null ? '' : String(row.category_id);
         const category = prefix + categoryId;
         const categoryName = type === 'live'
-          ? (MOCK_CATEGORIES.find(c => c.id === category)?.name || 'قنوات')
+          ? (iptvLiveCategories.find(c => c.id === category)?.name || 'قنوات')
           : (type === 'movie'
-            ? (MOCK_MOVIE_CATEGORIES.find(c => c.id === category)?.name || 'أفلام')
-            : (MOCK_SERIES_CATEGORIES.find(c => c.id === category)?.name || 'مسلسلات'));
+            ? (iptvVodCategories.find(c => c.id === category)?.name || 'أفلام')
+            : (iptvSeriesCategories.find(c => c.id === category)?.name || 'مسلسلات'));
         const id = String(type === 'live' ? row.stream_id : (type === 'movie' ? row.stream_id : row.series_id));
         return {
           id: type + '-' + id,
           sourceId: id,
           number: Number(row.num || index + 1),
-          name: String(row.name || 'بدون اسم'),
+          name: String(row.name).trim(),
           category,
           categoryName,
-          logoText: String(row.name || 'TV').trim().slice(0, 4).toUpperCase(),
+          logoText: '',
           logo: row.stream_icon || row.cover || '',
           streamUrl: type === 'series' ? '' : makeStreamUrl(type, id, row.container_extension || (type === 'live' ? 'ts' : 'mp4')),
           audioOnlyUrl: type === 'live' ? String(row.audio_only_url || row.audio_url || row.commentary_url || row.audio_track_url || '') : '',
@@ -2332,18 +2323,24 @@
         setText('home-username', 'غير متصل');
         setText('home-user-id', '—');
         setText('home-expiry', 'غير متاح');
+        setText('home-live-count', 'القنوات غير محمّلة');
+        setText('home-movies-count', 'الأفلام غير محمّلة');
+        setText('home-series-count', 'المسلسلات غير محمّلة');
         return;
       }
       const accountName = String(info.username || iptvState.username || '—');
       const expiry = formatXtreamExpiry(info.exp_date);
       setText('profile-username', accountName);
-      setText('profile-package', 'اشتراك Xtream Codes');
+      setText('profile-package', info.is_trial == null ? 'غير محدد من الخادم' : (Number(info.is_trial) === 1 ? 'تجريبي' : 'غير تجريبي'));
       setText('profile-id', accountName);
       setText('profile-expiry', expiry);
-      setText('profile-status', String(info.status || 'تم التحقق'));
+      setText('profile-status', String(info.status || 'غير محددة من الخادم'));
       setText('home-username', accountName);
       setText('home-user-id', accountName);
       setText('home-expiry', expiry);
+      setText('home-live-count', 'القنوات: ' + iptvLiveChannels.length);
+      setText('home-movies-count', 'الأفلام: ' + iptvVodMovies.length);
+      setText('home-series-count', 'المسلسلات: ' + iptvSeries.length);
     }
 
     async function connectAndLoadIptv(showStatus = true) {
@@ -2395,12 +2392,12 @@
           if (!saved) throw new Error('تم الاتصال لكن تعذر حفظ بيانات الاشتراك بأمان');
         }
 
-        replaceArray(MOCK_CATEGORIES, mapXtreamCategories(loaded.liveCategories, 'live-', true));
-        replaceArray(MOCK_MOVIE_CATEGORIES, mapXtreamCategories(loaded.movieCategories, 'movie-'));
-        replaceArray(MOCK_SERIES_CATEGORIES, mapXtreamCategories(loaded.seriesCategories, 'series-'));
-        replaceArray(MOCK_CHANNELS, mapXtreamItems(loaded.liveStreams, 'live-', 'live'));
-        replaceArray(MOCK_MOVIES, mapXtreamItems(loaded.movieStreams, 'movie-', 'movie'));
-        replaceArray(MOCK_SERIES, mapXtreamItems(loaded.seriesStreams, 'series-', 'series'));
+        replaceArray(iptvLiveCategories, mapXtreamCategories(loaded.liveCategories, 'live-', true));
+        replaceArray(iptvVodCategories, mapXtreamCategories(loaded.movieCategories, 'movie-'));
+        replaceArray(iptvSeriesCategories, mapXtreamCategories(loaded.seriesCategories, 'series-'));
+        replaceArray(iptvLiveChannels, mapXtreamItems(loaded.liveStreams, 'live-', 'live'));
+        replaceArray(iptvVodMovies, mapXtreamItems(loaded.movieStreams, 'movie-', 'movie'));
+        replaceArray(iptvSeries, mapXtreamItems(loaded.seriesStreams, 'series-', 'series'));
 
         iptvState.userInfo = userInfo;
         iptvState.connected = true;
@@ -2410,10 +2407,10 @@
         currentSeriesEpisodes = [];
         currentSeriesSeasonCategories = [];
         currentAppMode = 'live';
-        currentActiveCategory = MOCK_CATEGORIES.find(c => c.id !== 'cat-fav')?.id || 'cat-fav';
+        currentActiveCategory = iptvLiveCategories.find(c => c.id !== 'cat-fav')?.id || 'cat-fav';
         refreshCurrentContent();
 
-        const counts = 'القنوات: ' + MOCK_CHANNELS.length + ' | الأفلام: ' + MOCK_MOVIES.length + ' | المسلسلات: ' + MOCK_SERIES.length;
+        const counts = 'القنوات: ' + iptvLiveChannels.length + ' | الأفلام: ' + iptvVodMovies.length + ' | المسلسلات: ' + iptvSeries.length;
         if (status) status.textContent = 'تم تسجيل الدخول بنجاح — ' + counts;
         sessionAuthenticated = true;
         switchView('view-home');
@@ -2440,14 +2437,14 @@
       currentSeriesSeasonCategories = [];
       currentSeriesParent = null;
       currentSelectedItem = parent || null;
-      currentActiveCategory = parent?.category || MOCK_SERIES_CATEGORIES[0]?.id || '';
+      currentActiveCategory = parent?.category || iptvSeriesCategories[0]?.id || '';
       renderCategories();
       renderItems();
       if (videoPlaybackController) {
         videoPlaybackController.stopAndRelease();
         videoPlaybackController.showError('اختر حلقة من المسلسل لبدء التشغيل');
       }
-      const category = MOCK_SERIES_CATEGORIES.find(item => item.id === currentActiveCategory);
+      const category = iptvSeriesCategories.find(item => item.id === currentActiveCategory);
       const badge = document.getElementById('channels-badge-name');
       if (badge) badge.textContent = category?.name || 'المسلسلات';
       showToast('العودة إلى قائمة المسلسلات');
@@ -2743,9 +2740,9 @@
           scoreOverlay.style.display = 'none';
           vodMetaBox.style.display = 'flex';
           document.getElementById('vod-rating-tag').textContent = item.rating ? `★ ${item.rating}/10` : 'التقييم غير متاح';
-          document.getElementById('vod-specs-tag').textContent = item.specs || 'الجودة غير محددة';
+          document.getElementById('vod-specs-tag').textContent = item.specs ? 'الصيغة: ' + item.specs : 'صيغة الملف غير محددة من الخادم';
           document.getElementById('vod-cat-tag').textContent = item.categoryName;
-          document.getElementById('vod-desc-text').textContent = item.desc || 'لا يوجد وصف متاح.';
+          document.getElementById('vod-desc-text').textContent = item.desc || 'لا يوجد وصف متاح من مزود الاشتراك.';
           primaryLabel.textContent = currentAppMode === 'movies' ? 'تشغيل الفيلم' : 'تشغيل الحلقة';
         }
 
@@ -2764,6 +2761,8 @@
         };
         const noData = 'لا تتوفر بيانات دليل البرامج من الخادم';
         if (!item || !item.sourceId) {
+          const currentBadge = document.getElementById('epg-current-badge');
+          if (currentBadge) currentBadge.style.display = 'none';
           setText('epg-curr-title', noData);
           setText('epg-curr-time', '—');
           setText('epg-curr-desc', 'لم يقدم الخادم معلومات EPG لهذه القناة.');
@@ -2806,6 +2805,8 @@
           const current = events.find(event => event.start <= now && event.end > now) || null;
           const next = events.find(event => event.start > now) || null;
           const clock = value => new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit' }).format(new Date(value * 1000));
+          const currentBadge = document.getElementById('epg-current-badge');
+          if (currentBadge) currentBadge.style.display = current ? 'inline-flex' : 'none';
           if (current) {
             setText('epg-curr-title', decodeText(current.entry.title || 'برنامج حالي'));
             setText('epg-curr-time', clock(current.start) + ' - ' + clock(current.end));
@@ -2821,6 +2822,8 @@
           setText('epg-next-time', next ? clock(next.start) + ' - ' + clock(next.end) : '—');
         } catch (error) {
           if (requestId !== this.epgRequestId) return;
+          const currentBadge = document.getElementById('epg-current-badge');
+          if (currentBadge) currentBadge.style.display = 'none';
           setText('epg-curr-title', noData);
           setText('epg-curr-time', '—');
           setText('epg-curr-desc', 'تعذر تحميل EPG: ' + (error.message || 'خطأ غير معروف'));
@@ -3373,7 +3376,7 @@
      * =========================================================================
      */
     let currentActiveCategory = 'cat-sports';
-    let currentSelectedItem = MOCK_CHANNELS[0];
+    let currentSelectedItem = iptvLiveChannels[0];
 
     function setAppMode(mode) {
       currentAppMode = mode;
@@ -3396,17 +3399,17 @@
         titleEl.textContent = 'مباشر';
         searchInput.placeholder = 'البحث في القنوات...';
         catSearchInput.placeholder = 'البحث في فئات القنوات...';
-        currentActiveCategory = MOCK_CATEGORIES.find(c => c.id !== 'cat-fav')?.id || 'cat-fav';
+        currentActiveCategory = iptvLiveCategories.find(c => c.id !== 'cat-fav')?.id || 'cat-fav';
       } else if (mode === 'movies') {
         titleEl.textContent = 'الأفلام (VOD)';
         searchInput.placeholder = 'البحث في الأفلام...';
         catSearchInput.placeholder = 'البحث في تصنيفات الأفلام...';
-        currentActiveCategory = MOCK_MOVIE_CATEGORIES[0]?.id || '';
+        currentActiveCategory = iptvVodCategories[0]?.id || '';
       } else if (mode === 'series') {
         titleEl.textContent = 'المسلسلات (Series)';
         searchInput.placeholder = 'البحث في المسلسلات...';
         catSearchInput.placeholder = 'البحث في تصنيفات المسلسلات...';
-        currentActiveCategory = MOCK_SERIES_CATEGORIES[0]?.id || '';
+        currentActiveCategory = iptvSeriesCategories[0]?.id || '';
       }
 
       currentSelectedItem = getActiveItemList().find(item => item.category === currentActiveCategory) || getActiveItemList()[0] || null;
@@ -3417,15 +3420,15 @@
     }
 
     function getActiveCategoryList() {
-      if (currentAppMode === 'movies') return MOCK_MOVIE_CATEGORIES;
-      if (currentAppMode === 'series') return seriesEpisodeMode ? currentSeriesSeasonCategories : MOCK_SERIES_CATEGORIES;
-      return MOCK_CATEGORIES;
+      if (currentAppMode === 'movies') return iptvVodCategories;
+      if (currentAppMode === 'series') return seriesEpisodeMode ? currentSeriesSeasonCategories : iptvSeriesCategories;
+      return iptvLiveCategories;
     }
 
     function getActiveItemList() {
-      if (currentAppMode === 'movies') return MOCK_MOVIES;
-      if (currentAppMode === 'series') return seriesEpisodeMode ? currentSeriesEpisodes : MOCK_SERIES;
-      return MOCK_CHANNELS;
+      if (currentAppMode === 'movies') return iptvVodMovies;
+      if (currentAppMode === 'series') return seriesEpisodeMode ? currentSeriesEpisodes : iptvSeries;
+      return iptvLiveChannels;
     }
 
     function renderCategories() {
@@ -3590,7 +3593,7 @@
       if (!container) return;
       container.innerHTML = '';
 
-      let list = MOCK_CHANNELS;
+      let list = iptvLiveChannels;
       if (filterText) {
         list = list.filter(c => c.name.toLowerCase().includes(filterText.toLowerCase()));
       }
@@ -3792,9 +3795,9 @@
         }
 
         const groups = [
-          { mode: 'live', icon: '📺', label: 'قناة مباشرة', items: MOCK_CHANNELS, quality: false },
-          { mode: 'movies', icon: '🎬', label: 'فيلم', items: MOCK_MOVIES, quality: true },
-          { mode: 'series', icon: '🍿', label: 'مسلسل', items: MOCK_SERIES, quality: true }
+          { mode: 'live', icon: '📺', label: 'قناة مباشرة', items: iptvLiveChannels, quality: false },
+          { mode: 'movies', icon: '🎬', label: 'فيلم', items: iptvVodMovies, quality: true },
+          { mode: 'series', icon: '🍿', label: 'مسلسل', items: iptvSeries, quality: true }
         ];
         let total = 0;
         groups.forEach(group => {
