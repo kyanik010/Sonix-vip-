@@ -2206,13 +2206,21 @@
         setText('profile-id', '—');
         setText('profile-expiry', 'غير متاح');
         setText('profile-status', 'لم يتم التحقق من الاشتراك');
+        setText('home-username', 'غير متصل');
+        setText('home-user-id', '—');
+        setText('home-expiry', 'غير متاح');
         return;
       }
-      setText('profile-username', String(info.username || iptvState.username || '—'));
+      const accountName = String(info.username || iptvState.username || '—');
+      const expiry = formatXtreamExpiry(info.exp_date);
+      setText('profile-username', accountName);
       setText('profile-package', 'اشتراك Xtream Codes');
-      setText('profile-id', String(info.username || '—'));
-      setText('profile-expiry', formatXtreamExpiry(info.exp_date));
+      setText('profile-id', accountName);
+      setText('profile-expiry', expiry);
       setText('profile-status', String(info.status || 'تم التحقق'));
+      setText('home-username', accountName);
+      setText('home-user-id', accountName);
+      setText('home-expiry', expiry);
     }
 
     async function connectAndLoadIptv(showStatus = true) {
@@ -2273,6 +2281,7 @@
 
         iptvState.userInfo = userInfo;
         iptvState.connected = true;
+        renderProfile();
         seriesEpisodeMode = false;
         currentSeriesParent = null;
         currentSeriesEpisodes = [];
