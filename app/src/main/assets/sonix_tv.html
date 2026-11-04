@@ -2356,6 +2356,7 @@
         this.retryAttempts = 0;
         this.maxRetries = 3;
         this.isFullscreen = false;
+        this.epgRequestId = 0;
         this.bindEvents();
       }
 
@@ -2571,7 +2572,8 @@
           document.getElementById('epg-modal-channel-name').textContent = `دليل البرامج - ${item.name}`;
           document.getElementById('epg-curr-title').textContent = 'لا تتوفر بيانات دليل البرامج من الخادم';
           document.getElementById('epg-curr-desc').textContent = 'لم يتم ربط خدمة EPG لهذا الاشتراك بعد.';
-          document.getElementById('epg-next-title').textContent = 'لا توجد بيانات للبرنامج التالي';
+          document.getElementById('epg-next-title').textContent = 'جارٍ تحميل بيانات دليل البرامج...';
+          this.loadEpgForChannel(item);
         } else {
           scoreOverlay.style.display = 'none';
           vodMetaBox.style.display = 'flex';
@@ -2583,6 +2585,71 @@
         }
 
         updateFavoriteButtons(item.id);
+      }
+
+      async loadEpgForChannel(item) {
+        const requestId = ++this.epgRequestId;
+        const setText = (id, value) => {
+          const element = document.getElementById(id);
+          if (element) element.textContent = value;
+        };
+        const setProgress = value => {
+          const bar = document.getElementById('epg-progress-percent');
+          if (bar) bar.style.width = Math.max(0, Math.min(100, value)) + '%';
+        };
+        const noData = 'لا تتوفر بيانات دليل البرامج من الخادم';
+        if (!item || !item.sourceId) {
+          setText('epg-curr-title', noData);
+          setText('epg-curr-time', '—');
+          setText('epg-curr-desc', 'لم يقدم الخادم معلومات EPG لهذه القناة.');
+          setText('epg-next-title', 'لا توجد بيانات للبرنامج التالي');
+          setText('epg-next-time', '—');
+          setProgress(0);
+          return;
+        }
+        try {
+          const response = await xtreamRequest('get_short_epg', { stream_id: item.sourceId, limit: 10 });
+          if (requestId !== this.epgRequestId || !this.currentItem || this.currentItem.id !== item.id) return;
+          const entries = Array.isArray(response) ? response : (Array.isArray(response?.epg_list) ? response.epg_list : []);
+          const toEpoch = value => {
+            if (value == null || value === '') return NaN;
+            const numeric = Number(value);
+            if (Number.isFinite(numeric)) return numeric > 1000000000000 ? numeric / 1000 : numeric;
+            const parsed = new Date(value).getTime();
+            return Number.isNaN(parsed) ? NaN : parsed / 1000;
+          };
+          const events = entries.map(entry => ({
+            entry,
+            start: toEpoch(entry.start_timestamp || entry.start),
+            end: toEpoch(entry.stop_timestamp || entry.end)
+          })).filter(event => Number.isFinite(event.start) && Number.isFinite(event.end) && event.end > event.start)
+            .sort((a, b) => a.start - b.start);
+          const now = Date.now() / 1000;
+          const current = events.find(event => event.start <= now && event.end > now) || null;
+          const next = events.find(event => event.start > now) || null;
+          const clock = value => new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit' }).format(new Date(value * 1000));
+          if (current) {
+            setText('epg-curr-title', String(current.entry.title || 'برنامج حالي'));
+            setText('epg-curr-time', clock(current.start) + ' - ' + clock(current.end));
+            setText('epg-curr-desc', String(current.entry.description || 'لا يوجد وصف لهذا البرنامج.'));
+            setProgress(((now - current.start) / (current.end - current.start)) * 100);
+          } else {
+            setText('epg-curr-title', noData);
+            setText('epg-curr-time', '—');
+            setText('epg-curr-desc', 'لا يوجد برنامج حالي ضمن بيانات EPG التي أعادها الخادم.');
+            setProgress(0);
+          }
+          setText('epg-next-title', next ? String(next.entry.title || 'البرنامج التالي') : 'لا توجد بيانات للبرنامج التالي');
+          setText('epg-next-time', next ? clock(next.start) + ' - ' + clock(next.end) : '—');
+        } catch (error) {
+          if (requestId !== this.epgRequestId) return;
+          setText('epg-curr-title', noData);
+          setText('epg-curr-time', '—');
+          setText('epg-curr-desc', 'تعذر تحميل EPG: ' + (error.message || 'خطأ غير معروف'));
+          setText('epg-next-title', 'لا توجد بيانات للبرنامج التالي');
+          setText('epg-next-time', '—');
+          setProgress(0);
+        }
       }
 
       stopAndRelease() {
