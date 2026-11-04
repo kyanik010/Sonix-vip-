@@ -2672,7 +2672,7 @@
             try {
               const bytes = Uint8Array.from(atob(raw), character => character.charCodeAt(0));
               const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-              return decoded && !/[\\u0000-\\u0008]/.test(decoded) ? decoded : raw;
+              return decoded && !/[\u0000-\u0008]/.test(decoded) ? decoded : raw;
             } catch (_) {
               return raw;
             }
