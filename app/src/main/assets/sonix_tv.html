@@ -1767,12 +1767,6 @@
             </button>
 
             <!-- Top Left Match Score / Status Overlay -->
-            <div id="player-score-overlay" class="player-match-overlay" style="display:none;">
-              <span class="live-pill">LIVE</span>
-              <span class="match-score">—</span>
-              <span class="match-time">—</span>
-            </div>
-
             <!-- Top Right External Audio Active Indicator -->
             <div id="ext-audio-badge" class="ext-audio-active-badge">
               <div class="audio-wave-anim">
@@ -1859,10 +1853,8 @@
                   <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
                 </svg>
               </button>
-              <span id="player-quality-label" style="font-weight:700; color:var(--focus-blue);">FHD 1080p 60fps</span>
             </div>
             <div class="quick-ctrl-group">
-              <span id="player-buffer-info" style="color:var(--text-muted); font-size:0.72rem;">HLS Live Stream</span>
               <button id="ctrl-fullscreen-btn" class="ctrl-icon-btn focusable" title="ملء الشاشة">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
@@ -2723,12 +2715,10 @@
         document.getElementById('player-ch-name').textContent = item.name;
 
         // VOD vs Live metadata display
-        const scoreOverlay = document.getElementById('player-score-overlay');
         const vodMetaBox = document.getElementById('player-vod-meta-box');
         const primaryLabel = document.getElementById('primary-action-label');
 
         if (currentAppMode === 'live') {
-          scoreOverlay.style.display = 'none';
           vodMetaBox.style.display = 'none';
           primaryLabel.textContent = 'دليل البرامج';
           document.getElementById('epg-modal-channel-name').textContent = `دليل البرامج - ${item.name}`;
@@ -2737,7 +2727,6 @@
           document.getElementById('epg-next-title').textContent = 'جارٍ تحميل بيانات دليل البرامج...';
           this.loadEpgForChannel(item);
         } else {
-          scoreOverlay.style.display = 'none';
           vodMetaBox.style.display = 'flex';
           document.getElementById('vod-rating-tag').textContent = item.rating ? `★ ${item.rating}/10` : 'التقييم غير متاح';
           document.getElementById('vod-specs-tag').textContent = item.specs ? 'الصيغة: ' + item.specs : 'صيغة الملف غير محددة من الخادم';
