@@ -3346,7 +3346,7 @@
         const logoBox = document.createElement('div');
         logoBox.className = 'channel-logo-box';
         const logoUrl = String(it.logo || '');
-        if (/^https?:\\/\\//i.test(logoUrl)) {
+        if (/^https?:\/\//i.test(logoUrl)) {
           const image = document.createElement('img');
           image.alt = '';
           image.loading = 'lazy';
