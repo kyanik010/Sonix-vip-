@@ -2650,7 +2650,9 @@
         try {
           const response = await xtreamRequest('get_short_epg', { stream_id: item.sourceId, limit: 10 });
           if (requestId !== this.epgRequestId || !this.currentItem || this.currentItem.id !== item.id) return;
-          const entries = Array.isArray(response) ? response : (Array.isArray(response?.epg_list) ? response.epg_list : []);
+          const entries = Array.isArray(response) ? response :
+            (Array.isArray(response?.epg_list) ? response.epg_list :
+            (Array.isArray(response?.epg_listings) ? response.epg_listings : []));
           const toEpoch = value => {
             if (value == null || value === '') return NaN;
             const numeric = Number(value);
@@ -2664,14 +2666,25 @@
             end: toEpoch(entry.stop_timestamp || entry.end)
           })).filter(event => Number.isFinite(event.start) && Number.isFinite(event.end) && event.end > event.start)
             .sort((a, b) => a.start - b.start);
+          const decodeText = value => {
+            const raw = String(value || '');
+            if (!/^[A-Za-z0-9+/]+={0,2}$/.test(raw) || raw.length % 4 !== 0) return raw;
+            try {
+              const bytes = Uint8Array.from(atob(raw), character => character.charCodeAt(0));
+              const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+              return decoded && !/[\\u0000-\\u0008]/.test(decoded) ? decoded : raw;
+            } catch (_) {
+              return raw;
+            }
+          };
           const now = Date.now() / 1000;
           const current = events.find(event => event.start <= now && event.end > now) || null;
           const next = events.find(event => event.start > now) || null;
           const clock = value => new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit' }).format(new Date(value * 1000));
           if (current) {
-            setText('epg-curr-title', String(current.entry.title || 'برنامج حالي'));
+            setText('epg-curr-title', decodeText(current.entry.title || 'برنامج حالي'));
             setText('epg-curr-time', clock(current.start) + ' - ' + clock(current.end));
-            setText('epg-curr-desc', String(current.entry.description || 'لا يوجد وصف لهذا البرنامج.'));
+            setText('epg-curr-desc', decodeText(current.entry.description || 'لا يوجد وصف لهذا البرنامج.'));
             setProgress(((now - current.start) / (current.end - current.start)) * 100);
           } else {
             setText('epg-curr-title', noData);
@@ -2679,7 +2692,7 @@
             setText('epg-curr-desc', 'لا يوجد برنامج حالي ضمن بيانات EPG التي أعادها الخادم.');
             setProgress(0);
           }
-          setText('epg-next-title', next ? String(next.entry.title || 'البرنامج التالي') : 'لا توجد بيانات للبرنامج التالي');
+          setText('epg-next-title', next ? decodeText(next.entry.title || 'البرنامج التالي') : 'لا توجد بيانات للبرنامج التالي');
           setText('epg-next-time', next ? clock(next.start) + ' - ' + clock(next.end) : '—');
         } catch (error) {
           if (requestId !== this.epgRequestId) return;
