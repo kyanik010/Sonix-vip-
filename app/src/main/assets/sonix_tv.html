@@ -2329,7 +2329,16 @@
 
       bindEvents() {
         this.videoEl.addEventListener('waiting', () => this.showLoader('جارٍ تخزين البث مؤقتاً...'));
-        this.videoEl.addEventListener('playing', () => this.hideLoader());
+        this.videoEl.addEventListener('playing', () => {
+          this.hideLoader();
+          if (window.AndroidBridge && window.AndroidBridge.setKeepScreenOn) window.AndroidBridge.setKeepScreenOn(true);
+        });
+        this.videoEl.addEventListener('pause', () => {
+          if (window.AndroidBridge && window.AndroidBridge.setKeepScreenOn) window.AndroidBridge.setKeepScreenOn(false);
+        });
+        this.videoEl.addEventListener('ended', () => {
+          if (window.AndroidBridge && window.AndroidBridge.setKeepScreenOn) window.AndroidBridge.setKeepScreenOn(false);
+        });
         this.videoEl.addEventListener('canplay', () => this.hideLoader());
         this.videoEl.addEventListener('error', (e) => this.handleError(e));
 
@@ -3351,7 +3360,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       // 1. Initialize Video & Audio Engines
       videoPlaybackController = new VideoPlaybackController();
+      window.videoPlaybackController = videoPlaybackController;
       dualAudioEngine = new DualAudioSystem(videoPlaybackController);
+      window.dualAudioEngine = dualAudioEngine;
       remoteNavigator = new RemoteControlNavigator();
 
       // 2. Setup Clock
