@@ -1908,11 +1908,11 @@
             <div style="display:flex; flex-direction:column; gap:8px;">
               <label style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
                 <span>محرك الفيديو:</span>
-                <span style="font-weight:700; color:#fff;">HLS.js Hardware Accelerated</span>
+                <span style="font-weight:700; color:#fff;">HLS.js عبر WebView</span>
               </label>
               <label style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
                 <span>محرك الصوت الخارجي:</span>
-                <span style="font-weight:700; color:var(--accent-gold);">Web Audio API (مزامنة فورية)</span>
+                <span style="font-weight:700; color:var(--accent-gold);">Web Audio API (تأخير يدوي)</span>
               </label>
               <label style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
                 <span>سعة التخزين المؤقت (Buffer):</span>
@@ -2417,6 +2417,7 @@
       loadItem(item) {
         if (!item) return;
         this.currentItem = item;
+        if (dualAudioEngine && dualAudioEngine.isActive) dualAudioEngine.stopExternalAudio(false);
         this.retryAttempts = 0;
         this.errorEl.classList.remove('active');
         this.showLoader(`جارٍ الاتصال بـ ${item.name}...`);
@@ -2674,6 +2675,7 @@
         this.audioEl = document.getElementById('external-audio');
         this.selectedSourceChannel = null;
         this.isActive = false;
+        this.originalVideoMuted = false;
         this.audioContext = null;
         this.delayNode = null;
         this.sourceNode = null;
@@ -2766,6 +2768,10 @@
           return;
         }
 
+        if (!this.isActive) this.originalVideoMuted = this.videoController.videoEl.muted;
+        this.isActive = false;
+        this.activeBadgeEl.classList.remove('visible');
+        this.btnExtAudio.classList.remove('is-active');
         this.ensureAudioContextActive();
         this.setStatus('connecting', 'جارٍ الاتصال...');
 
@@ -2796,10 +2802,7 @@
           this.audioEl.play().catch(() => this.handleAudioFailure());
         }
 
-        this.isActive = true;
-        this.activeBadgeEl.classList.add('visible');
-        this.btnExtAudio.classList.add('is-active');
-        this.btnExtAudioText.textContent = `صوت: ${this.selectedSourceChannel.name.split(' ')[0]}`;
+        // Active state is set only after the audio element actually starts playing.
       }
 
       handleAudioFailure() {
@@ -2840,7 +2843,7 @@
       }
 
       restoreOriginalVideoAudio() {
-        this.videoController.videoEl.muted = false;
+        this.videoController.videoEl.muted = this.originalVideoMuted;
       }
 
       adjustDelay(deltaMs) {
@@ -3122,7 +3125,7 @@
           videoPlaybackController.pause();
         }
         if (dualAudioEngine && dualAudioEngine.audioEl) {
-          dualAudioEngine.audioEl.pause();
+          dualAudioEngine.stopExternalAudio(false);
         }
       }
 
