@@ -2307,6 +2307,28 @@
       }
     }
 
+    function exitSeriesEpisodeMode() {
+      if (!seriesEpisodeMode) return false;
+      const parent = currentSeriesParent;
+      seriesEpisodeMode = false;
+      currentSeriesEpisodes = [];
+      currentSeriesSeasonCategories = [];
+      currentSeriesParent = null;
+      currentSelectedItem = parent || null;
+      currentActiveCategory = parent?.category || MOCK_SERIES_CATEGORIES[0]?.id || '';
+      renderCategories();
+      renderItems();
+      if (videoPlaybackController) {
+        videoPlaybackController.stopAndRelease();
+        videoPlaybackController.showError('اختر حلقة من المسلسل لبدء التشغيل');
+      }
+      const category = MOCK_SERIES_CATEGORIES.find(item => item.id === currentActiveCategory);
+      const badge = document.getElementById('channels-badge-name');
+      if (badge) badge.textContent = category?.name || 'المسلسلات';
+      showToast('العودة إلى قائمة المسلسلات');
+      return true;
+    }
+
     async function loadSeriesEpisodes(series) {
       if (!series || !series.sourceId) return;
       showToast('جارٍ تحميل مواسم وحلقات ' + series.name);
@@ -2342,6 +2364,7 @@
         });
         if (!episodeItems.length) throw new Error('لا توجد حلقات متاحة لهذا المسلسل في الخادم');
         currentSeriesParent = series;
+        currentSelectedItem = series;
         currentSeriesEpisodes = episodeItems;
         currentSeriesSeasonCategories = seasonCategories;
         seriesEpisodeMode = true;
@@ -2993,7 +3016,10 @@
           return;
         }
 
-        // 3. If in Live/Movies/Series content browser, return to Home screen!
+        // 3. Return from a series episode list to its parent series list first.
+        if (exitSeriesEpisodeMode()) return;
+
+        // 4. If in Live/Movies/Series content browser, return to Home screen!
         const currentActiveView = document.querySelector('.view-screen.active');
         if (currentActiveView && currentActiveView.id !== 'view-home') {
           switchView('view-home');
@@ -3509,8 +3535,10 @@
 
       // 5. Explicit Back Button in Top Bar (Returns to Home!)
       document.getElementById('live-btn-back').addEventListener('click', () => {
-        switchView('view-home');
-        showToast('العودة إلى الشاشة الرئيسية');
+        if (!exitSeriesEpisodeMode()) {
+          switchView('view-home');
+          showToast('العودة إلى الشاشة الرئيسية');
+        }
       });
 
       // 6. Sidebar Mode Navigation (Unified 4-column layout)
