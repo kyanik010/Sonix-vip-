@@ -1,6 +1,7 @@
 package com.example
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.net.Uri
 import android.util.Base64
@@ -96,7 +97,7 @@ class MainActivity : ComponentActivity() {
 
     class WebAppInterface(private val activity: MainActivity) {
         private val preferences by lazy {
-            activity.getSharedPreferences("sonix_iptv_secure", MODE_PRIVATE)
+            activity.getSharedPreferences("sonix_iptv_secure", Context.MODE_PRIVATE)
         }
         private val keyAlias = "sonix_iptv_credentials_key"
 
@@ -106,44 +107,52 @@ class MainActivity : ComponentActivity() {
         }
 
         @android.webkit.JavascriptInterface
-        fun fetchIptv(address: String): String {
-            var connection: HttpURLConnection? = null
-            return try {
-                val parsed = Uri.parse(address)
-                require(parsed.scheme == "http" || parsed.scheme == "https")
-                require(!parsed.host.isNullOrBlank())
-                connection = (URL(address).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = 15000
-                    readTimeout = 20000
-                    instanceFollowRedirects = true
-                    setRequestProperty("Accept", "application/json")
-                    setRequestProperty("User-Agent", "SONIX-TV/1.0")
-                }
-                val status = connection.responseCode
-                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-                val output = ByteArrayOutputStream()
-                stream?.use { input ->
-                    val buffer = ByteArray(8192)
-                    var total = 0
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        total += count
-                        require(total <= 20 * 1024 * 1024) { "IPTV response too large" }
-                        output.write(buffer, 0, count)
+        fun fetchIptv(address: String, requestId: String) {
+            if (!requestId.matches(Regex("[0-9]{1,12}"))) return
+            Thread {
+                var connection: HttpURLConnection? = null
+                val result = try {
+                    val parsed = Uri.parse(address)
+                    require(parsed.scheme == "http" || parsed.scheme == "https")
+                    require(!parsed.host.isNullOrBlank())
+                    connection = (URL(address).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 15000
+                        readTimeout = 20000
+                        instanceFollowRedirects = true
+                        setRequestProperty("Accept", "application/json")
+                        setRequestProperty("User-Agent", "SONIX-TV/1.0")
                     }
+                    val status = connection.responseCode
+                    val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                    val output = ByteArrayOutputStream()
+                    stream?.use { input ->
+                        val buffer = ByteArray(8192)
+                        var total = 0
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            total += count
+                            require(total <= 20 * 1024 * 1024) { "IPTV response too large" }
+                            output.write(buffer, 0, count)
+                        }
+                    }
+                    JSONObject()
+                        .put("ok", status in 200..299)
+                        .put("status", status)
+                        .put("body", output.toString(Charsets.UTF_8.name()))
+                        .toString()
+                } catch (_: Exception) {
+                    JSONObject().put("ok", false).put("status", 0).put("body", "").toString()
+                } finally {
+                    connection?.disconnect()
                 }
-                JSONObject()
-                    .put("ok", status in 200..299)
-                    .put("status", status)
-                    .put("body", output.toString(Charsets.UTF_8.name()))
-                    .toString()
-            } catch (_: Exception) {
-                JSONObject().put("ok", false).put("status", 0).put("body", "").toString()
-            } finally {
-                connection?.disconnect()
-            }
+                activity.runOnUiThread {
+                    val callback = "window.__onIptvResponse && window.__onIptvResponse(" +
+                        JSONObject.quote(requestId) + "," + JSONObject.quote(result) + ")"
+                    activity.webView?.evaluateJavascript(callback, null)
+                }
+            }.start()
         }
 
         @android.webkit.JavascriptInterface
