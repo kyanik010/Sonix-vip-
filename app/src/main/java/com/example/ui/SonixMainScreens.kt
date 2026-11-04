@@ -92,21 +92,21 @@ fun SonixHomeScreen(
                 ) {
                     HeroActionCard(
                         title = "أفلام",
-                        subtitle = "أحدث إصدارات السينما العالمية بدقة 4K",
+                        subtitle = "الأفلام المتاحة في اشتراك IPTV",
                         icon = Icons.Default.Movie,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateMovies
                     )
                     HeroActionCard(
                         title = "مسلسلات",
-                        subtitle = "مواسم وحلقات كاملة بأعلى نقاوة",
+                        subtitle = "المسلسلات المتاحة في اشتراك IPTV",
                         icon = Icons.Default.Tv,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateSeries
                     )
                     HeroActionCard(
                         title = "قنوات",
-                        subtitle = "البث الحي والمباشر لجميع القنوات",
+                        subtitle = "القنوات المتاحة في اشتراك IPTV",
                         icon = Icons.Default.LiveTv,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateLive
@@ -140,7 +140,7 @@ fun SonixLiveScreen(
     onNavigateSeries: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedCategoryId by remember { mutableStateOf("cat-sports") }
+    var selectedCategoryId by remember { mutableStateOf("") }
     var channelSearchQuery by remember { mutableStateOf("") }
     var categorySearchQuery by remember { mutableStateOf("") }
 
