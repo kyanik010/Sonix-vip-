@@ -1648,7 +1648,7 @@
             <!-- Error Overlay -->
             <div id="player-error" class="player-error-overlay">
               <div style="font-size:1rem; font-weight:800; color:var(--danger-red);">تعذر تحميل البث المباشر</div>
-              <div style="font-size:0.8rem; color:var(--text-silver);">يرجى التأكد من اتصال الإنترنت أو اختيار مصدر آخر</div>
+              <div data-error-message style="font-size:0.8rem; color:var(--text-silver);">يرجى التأكد من اتصال الإنترنت أو اختيار مصدر آخر</div>
               <button id="player-retry-action" class="player-retry-btn focusable">إعادة المحاولة</button>
             </div>
           </div>
@@ -2021,7 +2021,24 @@
     const MOCK_SERIES_CATEGORIES = [];
     const MOCK_SERIES = [];
 
-    const memoryFavorites = new Set();
+    const FAVORITES_STORAGE_KEY = 'sonix_favorites_v1';
+    function loadSavedFavorites() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || '[]');
+        return new Set(Array.isArray(saved) ? saved.filter(value => typeof value === 'string') : []);
+      } catch (_) {
+        return new Set();
+      }
+    }
+    const memoryFavorites = loadSavedFavorites();
+    function persistFavorites() {
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(memoryFavorites)));
+      } catch (error) {
+        console.warn('Could not persist favorites:', error);
+        showToast('تعذر حفظ المفضلة على هذا الجهاز');
+      }
+    }
 
     // =========================================================================
     // REAL XTREAM API DATA SOURCE
@@ -2137,7 +2154,7 @@
           categoryName,
           logoText: String(row.name || 'TV').trim().slice(0, 4).toUpperCase(),
           logo: row.stream_icon || row.cover || '',
-          streamUrl: type === 'series' ? '' : makeStreamUrl(type, id, type === 'live' ? 'm3u8' : row.container_extension),
+          streamUrl: type === 'series' ? '' : makeStreamUrl(type, id, row.container_extension || (type === 'live' ? 'ts' : 'mp4')),
           audioOnlyUrl: '',
           rating: row.rating || '',
           specs: row.container_extension ? String(row.container_extension).toUpperCase() : '',
@@ -2172,6 +2189,12 @@
       if (button) { button.disabled = true; button.textContent = 'جارٍ اختبار الاتصال وتحميل البيانات...'; }
       if (status) status.textContent = 'جارٍ الاتصال بالخادم...';
 
+      const previousCredentials = {
+        server: iptvState.server,
+        username: iptvState.username,
+        password: iptvState.password,
+        connected: iptvState.connected
+      };
       iptvState.server = server;
       iptvState.username = username;
       iptvState.password = password;
@@ -2190,14 +2213,14 @@
           ['get_series_categories', 'seriesCategories'],
           ['get_series', 'seriesStreams']
         ];
+        const responses = await Promise.all(actions.map(([action]) => xtreamRequest(action)));
         const loaded = {};
-        for (const [action, key] of actions) {
-          try { loaded[key] = await xtreamRequest(action); }
-          catch (error) {
-            loaded[key] = [];
-            console.warn('IPTV section unavailable:', action);
+        actions.forEach(([action, key], index) => {
+          if (!Array.isArray(responses[index])) {
+            throw new Error('استجابة غير صالحة من الخادم عند تحميل: ' + action);
           }
-        }
+          loaded[key] = responses[index];
+        });
 
         replaceArray(MOCK_CATEGORIES, mapXtreamCategories(loaded.liveCategories, 'live-', true));
         replaceArray(MOCK_MOVIE_CATEGORIES, mapXtreamCategories(loaded.movieCategories, 'movie-'));
@@ -2208,7 +2231,8 @@
 
         iptvState.connected = true;
         if (window.AndroidBridge && typeof window.AndroidBridge.saveIptvConfig === 'function') {
-          window.AndroidBridge.saveIptvConfig(server, username, password);
+          const saved = window.AndroidBridge.saveIptvConfig(server, username, password);
+          if (!saved) throw new Error('تم الاتصال لكن تعذر حفظ بيانات الاشتراك بأمان');
         }
         seriesEpisodeMode = false;
         currentSeriesParent = null;
@@ -2223,7 +2247,10 @@
         if (showStatus) showToast('تم الاتصال وتحميل بيانات الاشتراك الحقيقية');
         return true;
       } catch (error) {
-        iptvState.connected = false;
+        iptvState.server = previousCredentials.server;
+        iptvState.username = previousCredentials.username;
+        iptvState.password = previousCredentials.password;
+        iptvState.connected = previousCredentials.connected;
         if (status) status.textContent = error.message || 'فشل الاتصال';
         throw error;
       } finally {
@@ -2430,6 +2457,8 @@
 
       showError(msg) {
         this.loaderEl.classList.remove('active');
+        const message = this.errorEl.querySelector('[data-error-message]');
+        if (message) message.textContent = msg || 'تعذر تشغيل المحتوى';
         this.errorEl.classList.add('active');
       }
 
@@ -2494,18 +2523,18 @@
         const primaryLabel = document.getElementById('primary-action-label');
 
         if (currentAppMode === 'live') {
-          scoreOverlay.style.display = 'flex';
+          scoreOverlay.style.display = 'none';
           vodMetaBox.style.display = 'none';
           primaryLabel.textContent = 'دليل البرامج';
           document.getElementById('epg-modal-channel-name').textContent = `دليل البرامج - ${item.name}`;
-          document.getElementById('epg-curr-title').textContent = item.epgTitle || 'بث مباشر';
-          document.getElementById('epg-curr-desc').textContent = item.epgDesc || 'لا توجد تفاصيل إضافية لهذا البرنامج.';
-          document.getElementById('epg-next-title').textContent = item.epgNext || 'البرنامج التالي';
+          document.getElementById('epg-curr-title').textContent = 'لا تتوفر بيانات دليل البرامج من الخادم';
+          document.getElementById('epg-curr-desc').textContent = 'لم يتم ربط خدمة EPG لهذا الاشتراك بعد.';
+          document.getElementById('epg-next-title').textContent = 'لا توجد بيانات للبرنامج التالي';
         } else {
           scoreOverlay.style.display = 'none';
           vodMetaBox.style.display = 'flex';
-          document.getElementById('vod-rating-tag').textContent = `★ ${item.rating || '8.5'}/10`;
-          document.getElementById('vod-specs-tag').textContent = item.specs || '4K HDR';
+          document.getElementById('vod-rating-tag').textContent = item.rating ? `★ ${item.rating}/10` : 'التقييم غير متاح';
+          document.getElementById('vod-specs-tag').textContent = item.specs || 'الجودة غير محددة';
           document.getElementById('vod-cat-tag').textContent = item.categoryName;
           document.getElementById('vod-desc-text').textContent = item.desc || 'لا يوجد وصف متاح.';
           primaryLabel.textContent = currentAppMode === 'movies' ? 'تشغيل الفيلم' : 'تشغيل الحلقة';
@@ -3117,10 +3146,12 @@
           ? memoryFavorites.size 
           : allItems.filter(c => c.category === cat.id).length;
 
-        item.innerHTML = `
-          <span>${cat.name}</span>
-          <span class="category-badge">${count}</span>
-        `;
+        const name = document.createElement('span');
+        name.textContent = cat.name;
+        const badge = document.createElement('span');
+        badge.className = 'category-badge';
+        badge.textContent = String(count);
+        item.append(name, badge);
 
         item.addEventListener('click', () => {
           selectCategory(cat.id);
@@ -3180,14 +3211,34 @@
         row.tabIndex = 0;
         row.dataset.itemId = it.id;
 
-        row.innerHTML = `
-          <span class="channel-number">${it.number}</span>
-          <div class="channel-logo-box">${it.logoText}</div>
-          <span class="channel-name">${it.name}</span>
-          <svg class="channel-fav-star ${isFav ? 'active' : ''}" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
-        `;
+        const number = document.createElement('span');
+        number.className = 'channel-number';
+        number.textContent = String(it.number || '');
+        const logoBox = document.createElement('div');
+        logoBox.className = 'channel-logo-box';
+        const logoUrl = String(it.logo || '');
+        if (/^https?:\\/\\//i.test(logoUrl)) {
+          const image = document.createElement('img');
+          image.alt = '';
+          image.loading = 'lazy';
+          image.referrerPolicy = 'no-referrer';
+          image.src = logoUrl;
+          image.onerror = () => { image.remove(); logoBox.textContent = String(it.logoText || 'TV'); };
+          logoBox.appendChild(image);
+        } else {
+          logoBox.textContent = String(it.logoText || 'TV');
+        }
+        const name = document.createElement('span');
+        name.className = 'channel-name';
+        name.textContent = it.name;
+        const star = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        star.setAttribute('class', 'channel-fav-star' + (isFav ? ' active' : ''));
+        star.setAttribute('viewBox', '0 0 24 24');
+        star.setAttribute('fill', 'currentColor');
+        const starPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        starPath.setAttribute('d', 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+        star.appendChild(starPath);
+        row.append(number, logoBox, name, star);
 
         let lastRowTap = 0;
         row.addEventListener('click', () => {
@@ -3250,10 +3301,13 @@
         item.className = `audio-picker-item focusable ${isCurrentAudio ? 'active' : ''}`;
         item.tabIndex = 0;
         item.dataset.channelId = ch.id;
-        item.innerHTML = `
-          <span>${ch.number}. ${ch.name}</span>
-          <span style="font-size:0.7rem; color:var(--text-muted);">${ch.categoryName}</span>
-        `;
+        const title = document.createElement('span');
+        title.textContent = String(ch.number) + '. ' + ch.name;
+        const category = document.createElement('span');
+        category.style.fontSize = '0.7rem';
+        category.style.color = 'var(--text-muted)';
+        category.textContent = ch.categoryName;
+        item.append(title, category);
         item.addEventListener('click', () => {
           dualAudioEngine.setSourceChannel(ch);
         });
@@ -3278,6 +3332,7 @@
         memoryFavorites.add(itemId);
         showToast('تمت الإضافة إلى المفضلة');
       }
+      persistFavorites();
       updateFavoriteButtons(itemId);
       renderCategories();
       renderItems();
