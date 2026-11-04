@@ -469,7 +469,7 @@ fun SonixVodScreen(
                 }
                 Text(text = title, color = SonixTextWhite, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
             }
-            Text(text = "مكتبة متجددة بأعلى دقة 4K HDR", color = SonixTextSilver, fontSize = 12.sp)
+            Text(text = "المحتوى من اشتراك IPTV", color = SonixTextSilver, fontSize = 12.sp)
         }
 
         LazyVerticalGrid(
