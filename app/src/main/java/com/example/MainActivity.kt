@@ -36,7 +36,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Keep screen awake during playback
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         try {
             val wv = WebView(this).apply {
@@ -49,7 +48,9 @@ class MainActivity : ComponentActivity() {
                     domStorageEnabled = true
                     mediaPlaybackRequiresUserGesture = false
                     allowFileAccess = true
-                    allowContentAccess = true
+                    allowContentAccess = false
+                    allowFileAccessFromFileURLs = false
+                    allowUniversalAccessFromFileURLs = false
                     loadWithOverviewMode = true
                     useWideViewPort = true
                     builtInZoomControls = false
@@ -68,7 +69,8 @@ class MainActivity : ComponentActivity() {
 
                 webChromeClient = object : WebChromeClient() {
                     override fun onPermissionRequest(request: PermissionRequest?) {
-                        request?.grant(request.resources)
+                        // SONIX does not require camera or microphone permissions.
+                        request?.deny()
                     }
                 }
 
@@ -100,6 +102,17 @@ class MainActivity : ComponentActivity() {
             activity.getSharedPreferences("sonix_iptv_secure", Context.MODE_PRIVATE)
         }
         private val keyAlias = "sonix_iptv_credentials_key"
+
+        @android.webkit.JavascriptInterface
+        fun setKeepScreenOn(enabled: Boolean) {
+            activity.runOnUiThread {
+                if (enabled) {
+                    activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+        }
 
         @android.webkit.JavascriptInterface
         fun closeApp() {
@@ -266,16 +279,16 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         webView?.onResume()
-        webView?.evaluateJavascript(
-            "(function() { if (typeof window.ensureHomeScreen === 'function') { window.ensureHomeScreen(); } })()",
-            null
-        )
     }
 
     override fun onPause() {
         super.onPause()
         webView?.evaluateJavascript(
-            "(function() { if (window.videoPlaybackController) { window.videoPlaybackController.pause(); } })()",
+            "(function() {" +
+                "if (window.videoPlaybackController) { window.videoPlaybackController.pause(); }" +
+                "if (window.dualAudioEngine) { window.dualAudioEngine.stopExternalAudio(false); }" +
+                "if (window.AndroidBridge) { window.AndroidBridge.setKeepScreenOn(false); }" +
+            "})()",
             null
         )
         webView?.onPause()
