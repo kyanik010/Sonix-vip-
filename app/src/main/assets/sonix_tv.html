@@ -2660,14 +2660,14 @@
         document.getElementById('delay-reset').addEventListener('click', () => this.resetDelay());
 
         this.audioEl.addEventListener('playing', () => {
+          this.isActive = true;
+          this.activeBadgeEl.classList.add('visible');
+          this.btnExtAudio.classList.add('is-active');
+          this.btnExtAudioText.textContent = `صوت: ${this.selectedSourceChannel ? this.selectedSourceChannel.name.split(' ')[0] : 'خارجي'}`;
           this.setStatus('playing', 'يعمل');
           showToast('تم تشغيل الصوت الخارجي بنجاح وكتم صوت الفيديو الأصلي');
         });
-        this.audioEl.addEventListener('error', () => {
-          this.setStatus('failed', 'فشل الاتصال');
-          this.restoreOriginalVideoAudio();
-          showToast('فشل اتصال الصوت الخارجي - تمت استعادة صوت الفيديو الأصلي');
-        });
+        this.audioEl.addEventListener('error', () => this.handleAudioFailure());
       }
 
       setSourceChannel(channel) {
@@ -2690,37 +2690,46 @@
           return;
         }
 
+        // An independent commentary/audio URL is required. Never treat the video
+        // stream itself as a separate audio source.
+        const audioUrl = typeof this.selectedSourceChannel.audioOnlyUrl === 'string'
+          ? this.selectedSourceChannel.audioOnlyUrl.trim()
+          : '';
+        if (!audioUrl) {
+          this.stopExternalAudio(false);
+          this.setStatus('unavailable', 'لا يوجد صوت منفصل');
+          showToast('هذه القناة لا تحتوي على رابط صوت مستقل للتعليق');
+          return;
+        }
+
         this.ensureAudioContextActive();
         this.setStatus('connecting', 'جارٍ الاتصال...');
-
-        this.videoController.videoEl.muted = true;
 
         if (this.hlsAudioInstance) {
           this.hlsAudioInstance.destroy();
           this.hlsAudioInstance = null;
         }
         this.audioEl.pause();
+        this.audioEl.removeAttribute('src');
+        this.audioEl.load();
 
-        const audioUrl = this.selectedSourceChannel.audioOnlyUrl || this.selectedSourceChannel.streamUrl;
-        const isM3u8 = audioUrl && audioUrl.includes('.m3u8');
+        this.videoController.videoEl.muted = true;
 
+        const isM3u8 = audioUrl.toLowerCase().includes('.m3u8');
         if (isM3u8 && window.Hls && Hls.isSupported()) {
           this.hlsAudioInstance = new Hls({ lowLatencyMode: true });
           this.hlsAudioInstance.loadSource(audioUrl);
           this.hlsAudioInstance.attachMedia(this.audioEl);
           this.hlsAudioInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-            this.audioEl.play().catch(e => console.warn('Audio play delay', e));
+            this.audioEl.play().catch(() => this.handleAudioFailure());
           });
-          this.hlsAudioInstance.on(Hls.Events.ERROR, () => {
-            this.setStatus('failed', 'فشل الاتصال');
-            this.restoreOriginalVideoAudio();
+          this.hlsAudioInstance.on(Hls.Events.ERROR, (event, data) => {
+            if (data && data.fatal) this.handleAudioFailure();
           });
         } else {
           this.audioEl.src = audioUrl;
-          this.audioEl.play().catch(() => {
-            this.audioEl.src = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4';
-            this.audioEl.play().catch(() => {});
-          });
+          this.audioEl.load();
+          this.audioEl.play().catch(() => this.handleAudioFailure());
         }
 
         this.isActive = true;
@@ -2729,13 +2738,31 @@
         this.btnExtAudioText.textContent = `صوت: ${this.selectedSourceChannel.name.split(' ')[0]}`;
       }
 
-      stopExternalAudio() {
+      handleAudioFailure() {
         if (this.hlsAudioInstance) {
           this.hlsAudioInstance.destroy();
           this.hlsAudioInstance = null;
         }
         this.audioEl.pause();
         this.audioEl.removeAttribute('src');
+        this.audioEl.load();
+        this.isActive = false;
+        this.restoreOriginalVideoAudio();
+        this.activeBadgeEl.classList.remove('visible');
+        this.btnExtAudio.classList.remove('is-active');
+        this.btnExtAudioText.textContent = 'الصوت الخارجي';
+        this.setStatus('failed', 'فشل الاتصال');
+        showToast('فشل اتصال الصوت الخارجي - تمت استعادة صوت الفيديو الأصلي');
+      }
+
+      stopExternalAudio(showMessage = true) {
+        if (this.hlsAudioInstance) {
+          this.hlsAudioInstance.destroy();
+          this.hlsAudioInstance = null;
+        }
+        this.audioEl.pause();
+        this.audioEl.removeAttribute('src');
+        this.audioEl.load();
         this.isActive = false;
 
         this.setStatus('stopped', 'متوقف');
@@ -2743,7 +2770,9 @@
         this.activeBadgeEl.classList.remove('visible');
         this.btnExtAudio.classList.remove('is-active');
         this.btnExtAudioText.textContent = 'الصوت الخارجي';
-        showToast('تم إيقاف الصوت الخارجي واستعادة صوت الفيديو الأصلي');
+        if (showMessage) {
+          showToast('تم إيقاف الصوت الخارجي واستعادة صوت الفيديو الأصلي');
+        }
       }
 
       restoreOriginalVideoAudio() {
