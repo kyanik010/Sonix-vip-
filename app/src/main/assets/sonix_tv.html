@@ -1674,8 +1674,8 @@
           <div id="player-vod-meta-box" class="vod-meta-box" style="display:none;">
             <div class="vod-meta-row">
               <span id="vod-rating-tag" class="vod-rating-pill">التقييم غير متاح</span>
-              <span id="vod-specs-tag" style="color:var(--focus-blue); font-weight:700;">4K HDR • 166 دقيقة</span>
-              <span id="vod-cat-tag" style="color:var(--text-silver);">خيال علمي</span>
+              <span id="vod-specs-tag" style="color:var(--focus-blue); font-weight:700;">المعلومات غير متاحة</span>
+              <span id="vod-cat-tag" style="color:var(--text-silver);">—</span>
             </div>
             <div id="vod-desc-text" class="vod-synopsis">يواصل بول أتريدس رحلته الأسطورية متحالفا مع تشاني وفريمن للانتقام من المتآمرين الذين دمروا عائلته.</div>
           </div>
@@ -2162,7 +2162,7 @@
           logoText: String(row.name || 'TV').trim().slice(0, 4).toUpperCase(),
           logo: row.stream_icon || row.cover || '',
           streamUrl: type === 'series' ? '' : makeStreamUrl(type, id, row.container_extension || (type === 'live' ? 'ts' : 'mp4')),
-          audioOnlyUrl: '',
+          audioOnlyUrl: type === 'live' ? String(row.audio_only_url || row.audio_url || row.commentary_url || row.audio_track_url || '') : '',
           rating: row.rating || '',
           specs: row.container_extension ? String(row.container_extension).toUpperCase() : '',
           desc: row.plot || '',
